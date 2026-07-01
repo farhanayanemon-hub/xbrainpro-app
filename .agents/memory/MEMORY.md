@@ -1,2 +1,3 @@
-- [Monorepo lib builds](monorepo-lib-builds.md) — composite TS project refs; stale `lib/*/dist` causes TS6305/no-export errors in artifacts; rebuild before typecheck.
-- [Drizzle transaction typing](drizzle-tx-typing.md) — extract the tx type instead of `any`; lock rows with `.for("update")` for read-modify-write correctness.
+- [Monorepo lib builds](monorepo-lib-builds.md) — rebuild composite TS libs when TS6305 appears; codegen flow from openapi.yaml.
+- [Drizzle tx typing](drizzle-tx-typing.md) — how to type transaction executors in this repo.
+- [api-server env quirks](api-server-env-quirks.md) — EADDRINUSE on rapid restarts; express body limit must be raised for base64 uploads.

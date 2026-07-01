@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useListReminders } from "@workspace/api-client-react";
 
 type Permission = "default" | "granted" | "denied" | "unsupported";
@@ -10,33 +10,63 @@ function currentPermission(): Permission {
   return Notification.permission as Permission;
 }
 
+// Module-level state shared across every hook instance so that (a) only one
+// scheduler loop ever runs and (b) permission changes made on one page are
+// reflected everywhere.
+const firedKeys = new Set<string>();
+const listeners = new Set<(p: Permission) => void>();
+
+function broadcastPermission(p: Permission) {
+  listeners.forEach((l) => l(p));
+}
+
 /**
- * Schedules browser notifications for the user's enabled reminders while the
- * app is open. Checks once a minute; each reminder fires at most once per day
- * on the weekdays it is active for. Falls back gracefully where the
- * Notification API is unavailable or permission is denied.
+ * Read-only access to notification permission plus a request helper. Safe to
+ * mount in multiple components — it never starts a scheduling loop.
  */
-export function useReminderNotifications() {
-  const { data: reminders } = useListReminders();
+export function useNotificationPermission() {
   const [permission, setPermission] = useState<Permission>(currentPermission);
-  // Tracks "reminderId@YYYY-MM-DD@HH:MM" keys already fired this session.
-  const firedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const listener = (p: Permission) => setPermission(p);
+    listeners.add(listener);
+    // Re-sync in case permission changed while unmounted.
+    setPermission(currentPermission());
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
 
   const requestPermission = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) {
-      setPermission("unsupported");
+      broadcastPermission("unsupported");
       return "unsupported" as Permission;
     }
-    const result = await Notification.requestPermission();
-    setPermission(result as Permission);
-    return result as Permission;
+    const result = (await Notification.requestPermission()) as Permission;
+    broadcastPermission(result);
+    return result;
   }, []);
 
+  return { permission, requestPermission };
+}
+
+/**
+ * Schedules browser notifications for the user's enabled reminders while the
+ * app is open. Mount this exactly once (in the authenticated layout). It checks
+ * once a minute and reads live permission each tick, so granting permission on
+ * any page takes effect without a remount. Each reminder fires at most once per
+ * day on the weekdays it is active for.
+ */
+export function useReminderNotifications() {
+  const { data: reminders } = useListReminders();
+  const permissionApi = useNotificationPermission();
+
   useEffect(() => {
-    if (permission !== "granted") return;
     if (!reminders || reminders.length === 0) return;
 
     const check = () => {
+      if (currentPermission() !== "granted") return;
+
       const now = new Date();
       const day = now.getDay();
       const hh = String(now.getHours()).padStart(2, "0");
@@ -51,8 +81,8 @@ export function useReminderNotifications() {
         if (r.timeOfDay.slice(0, 5) !== nowHm) continue;
 
         const key = `${r.id}@${dateKey}@${nowHm}`;
-        if (firedRef.current.has(key)) continue;
-        firedRef.current.add(key);
+        if (firedKeys.has(key)) continue;
+        firedKeys.add(key);
 
         try {
           new Notification("XBrainPro", {
@@ -68,7 +98,7 @@ export function useReminderNotifications() {
     check();
     const interval = window.setInterval(check, 60 * 1000);
     return () => window.clearInterval(interval);
-  }, [permission, reminders]);
+  }, [reminders]);
 
-  return { permission, requestPermission };
+  return permissionApi;
 }

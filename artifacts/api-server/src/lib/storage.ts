@@ -14,6 +14,50 @@ const ALLOWED_TYPES: Record<string, string> = {
 // 5 MB decoded ceiling for profile images.
 const MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * Sniff the leading bytes of a decoded image to confirm it matches the declared
+ * content type. Prevents uploading arbitrary bytes with a spoofed MIME type.
+ */
+function matchesSignature(buf: Buffer, contentType: string): boolean {
+  const type = contentType.toLowerCase();
+  if (type === "image/png") {
+    return (
+      buf.length >= 8 &&
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47 &&
+      buf[4] === 0x0d &&
+      buf[5] === 0x0a &&
+      buf[6] === 0x1a &&
+      buf[7] === 0x0a
+    );
+  }
+  if (type === "image/jpeg" || type === "image/jpg") {
+    return buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (type === "image/gif") {
+    return (
+      buf.length >= 6 &&
+      buf[0] === 0x47 &&
+      buf[1] === 0x49 &&
+      buf[2] === 0x46 &&
+      buf[3] === 0x38 &&
+      (buf[4] === 0x37 || buf[4] === 0x39) &&
+      buf[5] === 0x61
+    );
+  }
+  if (type === "image/webp") {
+    // "RIFF" .... "WEBP"
+    return (
+      buf.length >= 12 &&
+      buf.toString("ascii", 0, 4) === "RIFF" &&
+      buf.toString("ascii", 8, 12) === "WEBP"
+    );
+  }
+  return false;
+}
+
 export class StorageError extends Error {
   readonly code: "not_configured" | "invalid_image" | "upload_failed";
   constructor(code: StorageError["code"], message: string) {
@@ -93,6 +137,12 @@ export async function uploadAvatarImage(
   }
   if (buffer.length > MAX_BYTES) {
     throw new StorageError("invalid_image", "Image is larger than 5 MB.");
+  }
+  if (!matchesSignature(buffer, contentType)) {
+    throw new StorageError(
+      "invalid_image",
+      "File content does not match a valid PNG, JPEG, WebP, or GIF image.",
+    );
   }
 
   const client = getClient();

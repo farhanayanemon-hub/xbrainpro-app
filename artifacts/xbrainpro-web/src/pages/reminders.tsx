@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
+import { useNotificationPermission } from "@/hooks/use-reminder-notifications";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -17,7 +17,7 @@ export default function Reminders() {
   const updateReminder = useUpdateReminder();
   const deleteReminder = useDeleteReminder();
   const queryClient = useQueryClient();
-  const { permission, requestPermission } = useReminderNotifications();
+  const { permission, requestPermission } = useNotificationPermission();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTime, setNewTime] = useState("08:00");
