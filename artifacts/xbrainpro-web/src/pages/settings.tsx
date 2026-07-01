@@ -1,11 +1,11 @@
-import { useGetProfile, useUpdateProfile, useLogout, getGetProfileQueryKey, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import { useGetProfile, useUpdateProfile, useLogout, useGetCurrentUser, useUploadAvatar, getGetProfileQueryKey, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Loader2, Save, LogOut, User } from "lucide-react";
+import { Loader2, Save, LogOut, User, Camera } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,10 +22,45 @@ const settingsSchema = z.object({
 
 export default function Settings() {
   const { data: profile, isLoading } = useGetProfile();
+  const { data: user } = useGetCurrentUser();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
   const logout = useLogout();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please choose an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Please choose an image under 5 MB.", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1] ?? "";
+      uploadAvatar.mutate(
+        { data: { imageBase64: base64, contentType: file.type } },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+            toast({ title: "Photo Updated", description: "Your profile image has been saved." });
+          },
+          onError: (err) => {
+            toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Could not upload image.", variant: "destructive" });
+          },
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+  };
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -86,12 +121,40 @@ export default function Settings() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 md:p-8 rounded-3xl border border-white/5">
         <div className="flex items-center gap-4 mb-8 pb-8 border-b border-white/5">
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-            <User className="w-8 h-8 text-white/50" />
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadAvatar.isPending}
+            className="group relative w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shrink-0 hover:border-primary/50 transition-colors"
+            aria-label="Upload profile photo"
+          >
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-8 h-8 text-white/50" />
+            )}
+            {uploadAvatar.isPending ? (
+              <span className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              </span>
+            ) : (
+              <span className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-5 h-5 text-white" />
+              </span>
+            )}
+          </button>
           <div>
             <h2 className="text-xl font-bold text-white">Identity Profile</h2>
-            <p className="text-sm text-muted-foreground">Used by the architect to personalize protocols.</p>
+            <p className="text-sm text-muted-foreground">
+              {user?.name ? `${user.name} — ` : ""}Tap your photo to upload a new one.
+            </p>
           </div>
         </div>
 

@@ -134,6 +134,28 @@ export const UpdateProfileResponse = zod.object({
 
 
 /**
+ * @summary Upload a profile image to storage and set it as the avatar
+ */
+export const UploadAvatarBody = zod.object({
+  "imageBase64": zod.string().describe('The image encoded as a base64 string (without data URI prefix)'),
+  "contentType": zod.string().describe('The MIME type of the image, e.g. image\/png or image\/jpeg')
+})
+
+export const UploadAvatarResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "xp": zod.number(),
+  "level": zod.number().describe('Overall account level derived from XP'),
+  "streak": zod.number().describe('Current daily streak in days'),
+  "hasProgram": zod.boolean(),
+  "onboarded": zod.boolean(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
  * @summary List the available transformation paths
  */
 export const ListPathsResponseItem = zod.object({

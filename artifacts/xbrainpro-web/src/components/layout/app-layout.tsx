@@ -2,10 +2,13 @@ import { Link, useLocation } from "wouter";
 import { useGetCurrentUser } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Compass, Map as MapIcon, BarChart3, MessageSquare, Bell, Settings as SettingsIcon } from "lucide-react";
+import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: user } = useGetCurrentUser();
+  // Keeps reminder notifications firing while any authenticated page is open.
+  useReminderNotifications();
 
   const isPublic = ["/", "/login", "/register"].includes(location);
   const isOnboarding = location === "/onboarding" || location === "/paths" || location === "/start";

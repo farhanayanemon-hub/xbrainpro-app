@@ -7,6 +7,7 @@
  */
 
 export * from './authResult';
+export * from './avatarUpload';
 export * from './badge';
 export * from './chatMessage';
 export * from './chatMessageInput';

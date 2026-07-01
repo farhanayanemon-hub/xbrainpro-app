@@ -155,6 +155,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/Profile"
 
+  /profile/avatar:
+    post:
+      operationId: uploadAvatar
+      tags: [profile]
+      summary: Upload a profile image to storage and set it as the avatar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvatarUpload"
+      responses:
+        "200":
+          description: Updated user with new avatar URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Storage is not configured or upload failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /paths:
     get:
       operationId: listPaths
@@ -566,6 +603,17 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    AvatarUpload:
+      type: object
+      required: [imageBase64, contentType]
+      properties:
+        imageBase64:
+          type: string
+          description: The image encoded as a base64 string (without data URI prefix)
+        contentType:
+          type: string
+          description: The MIME type of the image, e.g. image/png or image/jpeg
 
     Profile:
       type: object

@@ -48,6 +48,13 @@ export interface AuthResult {
   token: string;
 }
 
+export interface AvatarUpload {
+  /** The image encoded as a base64 string (without data URI prefix) */
+  imageBase64: string;
+  /** The MIME type of the image, e.g. image/png or image/jpeg */
+  contentType: string;
+}
+
 export interface Profile {
   userId: number;
   onboarded: boolean;

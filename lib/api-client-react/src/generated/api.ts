@@ -21,6 +21,7 @@ import type {
 
 import type {
   AuthResult,
+  AvatarUpload,
   Badge,
   ChatMessage,
   ChatMessageInput,
@@ -582,6 +583,76 @@ export const useUpdateProfile = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateProfileMutationOptions(options));
+    }
+
+export const getUploadAvatarUrl = () => {
+
+
+
+
+  return `/api/profile/avatar`
+}
+
+/**
+ * @summary Upload a profile image to storage and set it as the avatar
+ */
+export const uploadAvatar = async (avatarUpload: AvatarUpload, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUploadAvatarUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(avatarUpload)
+  }
+);}
+
+
+
+
+export const getUploadAvatarMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAvatar>>, TError,{data: BodyType<AvatarUpload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadAvatar>>, TError,{data: BodyType<AvatarUpload>}, TContext> => {
+
+const mutationKey = ['uploadAvatar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadAvatar>>, {data: BodyType<AvatarUpload>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadAvatar(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof uploadAvatar>>>
+    export type UploadAvatarMutationBody = BodyType<AvatarUpload>
+    export type UploadAvatarMutationError = ErrorType<Error>
+
+    /**
+ * @summary Upload a profile image to storage and set it as the avatar
+ */
+export const useUploadAvatar = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAvatar>>, TError,{data: BodyType<AvatarUpload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadAvatar>>,
+        TError,
+        {data: BodyType<AvatarUpload>},
+        TContext
+      > => {
+      return useMutation(getUploadAvatarMutationOptions(options));
     }
 
 export const getListPathsUrl = () => {

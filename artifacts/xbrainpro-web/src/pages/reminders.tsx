@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -16,6 +17,7 @@ export default function Reminders() {
   const updateReminder = useUpdateReminder();
   const deleteReminder = useDeleteReminder();
   const queryClient = useQueryClient();
+  const { permission, requestPermission } = useReminderNotifications();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTime, setNewTime] = useState("08:00");
@@ -138,6 +140,38 @@ export default function Reminders() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {permission !== "granted" && (
+        <div className={`glass-card rounded-3xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${permission === "denied" ? "border-destructive/30" : "border-primary/20"}`}>
+          <div className="flex items-start gap-3">
+            <Bell className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-white font-medium">
+                {permission === "unsupported"
+                  ? "Notifications not supported"
+                  : permission === "denied"
+                    ? "Notifications are blocked"
+                    : "Turn on browser notifications"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {permission === "unsupported"
+                  ? "This browser can't show alerts. Try a modern desktop browser."
+                  : permission === "denied"
+                    ? "Enable notifications for this site in your browser settings to get alerts."
+                    : "Get alerted at the exact time of each reminder while XBrainPro is open."}
+              </p>
+            </div>
+          </div>
+          {permission === "default" && (
+            <Button
+              onClick={() => requestPermission()}
+              className="rounded-full h-11 px-5 bg-white text-black hover:bg-white/90 font-bold shrink-0"
+            >
+              Enable Alerts
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         <AnimatePresence>
