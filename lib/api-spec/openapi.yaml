@@ -10,6 +10,22 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: profile
+    description: User profile and self-assessment
+  - name: paths
+    description: Transformation paths
+  - name: programs
+    description: Personalized programs / plans
+  - name: tasks
+    description: Daily tasks
+  - name: dashboard
+    description: Dashboard and progress
+  - name: reminders
+    description: Notification reminders
+  - name: chat
+    description: AI coach chat
 paths:
   /healthz:
     get:
@@ -24,6 +40,453 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the currently authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get the user's profile and self-assessment
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update profile / self-assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /paths:
+    get:
+      operationId: listPaths
+      tags: [paths]
+      summary: List the available transformation paths
+      responses:
+        "200":
+          description: Paths
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Path"
+
+  /programs:
+    get:
+      operationId: listPrograms
+      tags: [programs]
+      summary: List the user's programs
+      responses:
+        "200":
+          description: Programs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Program"
+    post:
+      operationId: createProgram
+      tags: [programs]
+      summary: Generate a personalized program with AI
+      description: Uses the self-assessment, chosen path, and duration to generate a full plan with levels and daily tasks.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramInput"
+      responses:
+        "201":
+          description: Created program with generated levels and tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /programs/current:
+    get:
+      operationId: getCurrentProgram
+      tags: [programs]
+      summary: Get the user's active program with levels and tasks
+      responses:
+        "200":
+          description: Current program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "404":
+          description: No active program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /programs/{id}:
+    get:
+      operationId: getProgram
+      tags: [programs]
+      summary: Get a program with its levels and tasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Program detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: deleteProgram
+      tags: [programs]
+      summary: Delete a program
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /programs/{id}/activate:
+    post:
+      operationId: activateProgram
+      tags: [programs]
+      summary: Make a program the active one
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activated program
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramDetail"
+
+  /tasks/today:
+    get:
+      operationId: getTodayTasks
+      tags: [tasks]
+      summary: Get today's tasks for the active program
+      responses:
+        "200":
+          description: Today's tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+
+  /tasks/{id}/complete:
+    post:
+      operationId: completeTask
+      tags: [tasks]
+      summary: Mark a task complete and award XP
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Completion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskCompletionResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/{id}/uncomplete:
+    post:
+      operationId: uncompleteTask
+      tags: [tasks]
+      summary: Mark a task not complete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Dashboard summary for the active program
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /progress:
+    get:
+      operationId: getProgress
+      tags: [dashboard]
+      summary: Progress, streak history, and badges
+      responses:
+        "200":
+          description: Progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Progress"
+
+  /badges:
+    get:
+      operationId: listBadges
+      tags: [dashboard]
+      summary: List badges the user has earned or can earn
+      responses:
+        "200":
+          description: Badges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Badge"
+
+  /reminders:
+    get:
+      operationId: listReminders
+      tags: [reminders]
+      summary: List reminders
+      responses:
+        "200":
+          description: Reminders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reminder"
+    post:
+      operationId: createReminder
+      tags: [reminders]
+      summary: Create a reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReminderInput"
+      responses:
+        "201":
+          description: Created reminder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reminder"
+
+  /reminders/{id}:
+    patch:
+      operationId: updateReminder
+      tags: [reminders]
+      summary: Update a reminder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReminderUpdate"
+      responses:
+        "200":
+          description: Updated reminder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reminder"
+    delete:
+      operationId: deleteReminder
+      tags: [reminders]
+      summary: Delete a reminder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /chat/messages:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      summary: Get the AI coach chat history
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI coach and get a reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Assistant reply plus the stored user message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatReply"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +497,443 @@ components:
       required:
         - status
 
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+          minLength: 1
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResult:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+          description: Bearer token for mobile clients. Web uses the session cookie.
+
+    User:
+      type: object
+      required: [id, email, name, xp, level, streak, hasProgram, onboarded]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        xp:
+          type: integer
+        level:
+          type: integer
+          description: Overall account level derived from XP
+        streak:
+          type: integer
+          description: Current daily streak in days
+        hasProgram:
+          type: boolean
+        onboarded:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      required: [userId, onboarded]
+      properties:
+        userId:
+          type: integer
+        onboarded:
+          type: boolean
+        about:
+          type: ["string", "null"]
+          description: What the user said about themselves
+        currentSituation:
+          type: ["string", "null"]
+        biggestChallenge:
+          type: ["string", "null"]
+        motivation:
+          type: ["string", "null"]
+        focusMinutesPerDay:
+          type: ["integer", "null"]
+
+    ProfileUpdate:
+      type: object
+      properties:
+        about:
+          type: string
+        currentSituation:
+          type: string
+        biggestChallenge:
+          type: string
+        motivation:
+          type: string
+        focusMinutesPerDay:
+          type: integer
+        onboarded:
+          type: boolean
+
+    Path:
+      type: object
+      required: [key, title, tagline, description, accent]
+      properties:
+        key:
+          type: string
+          description: One of millionaire, business, heartbreak, happiness, superhuman, confidence, focus
+        title:
+          type: string
+        tagline:
+          type: string
+        description:
+          type: string
+        accent:
+          type: string
+          description: A hex color hint associated with the path
+        outcomes:
+          type: array
+          items:
+            type: string
+
+    ProgramInput:
+      type: object
+      required: [pathKey, durationDays]
+      properties:
+        pathKey:
+          type: string
+        durationDays:
+          type: integer
+          description: 30 or 60
+        about:
+          type: string
+        currentSituation:
+          type: string
+        biggestChallenge:
+          type: string
+        motivation:
+          type: string
+
+    Program:
+      type: object
+      required: [id, pathKey, pathTitle, durationDays, status, currentLevel, totalLevels, progressPct, createdAt]
+      properties:
+        id:
+          type: integer
+        pathKey:
+          type: string
+        pathTitle:
+          type: string
+        title:
+          type: string
+        durationDays:
+          type: integer
+        status:
+          type: string
+          description: active, completed, or archived
+        currentLevel:
+          type: integer
+        totalLevels:
+          type: integer
+        progressPct:
+          type: integer
+        accent:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    ProgramDetail:
+      type: object
+      required: [id, pathKey, pathTitle, durationDays, status, currentLevel, totalLevels, progressPct, levels, createdAt]
+      properties:
+        id:
+          type: integer
+        pathKey:
+          type: string
+        pathTitle:
+          type: string
+        title:
+          type: string
+        summary:
+          type: ["string", "null"]
+        durationDays:
+          type: integer
+        status:
+          type: string
+        currentLevel:
+          type: integer
+        totalLevels:
+          type: integer
+        progressPct:
+          type: integer
+        accent:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Level"
+
+    Level:
+      type: object
+      required: [id, levelNumber, title, status, xpReward, tasks]
+      properties:
+        id:
+          type: integer
+        levelNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: locked, active, or completed
+        xpReward:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+
+    Task:
+      type: object
+      required: [id, levelId, levelNumber, dayNumber, title, completed, xp]
+      properties:
+        id:
+          type: integer
+        levelId:
+          type: integer
+        levelNumber:
+          type: integer
+        dayNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        timeOfDay:
+          type: ["string", "null"]
+          description: Suggested time like "07:00" or "Morning"
+        durationMinutes:
+          type: ["integer", "null"]
+        completed:
+          type: boolean
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        xp:
+          type: integer
+
+    TaskCompletionResult:
+      type: object
+      required: [task, xpAwarded, totalXp, streak, leveledUp]
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+        xpAwarded:
+          type: integer
+        totalXp:
+          type: integer
+        streak:
+          type: integer
+        leveledUp:
+          type: boolean
+        newBadges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+
+    DashboardSummary:
+      type: object
+      required: [hasProgram, xp, level, streak, todayTotal, todayCompleted]
+      properties:
+        hasProgram:
+          type: boolean
+        program:
+          $ref: "#/components/schemas/Program"
+        xp:
+          type: integer
+        level:
+          type: integer
+        streak:
+          type: integer
+        longestStreak:
+          type: integer
+        todayTotal:
+          type: integer
+        todayCompleted:
+          type: integer
+        todayTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        nextLevelTitle:
+          type: ["string", "null"]
+        quote:
+          type: ["string", "null"]
+          description: A motivational line for the day
+
+    Progress:
+      type: object
+      required: [xp, level, streak, longestStreak, totalTasksCompleted, completionRate, weeklyActivity, badges]
+      properties:
+        xp:
+          type: integer
+        level:
+          type: integer
+        streak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalTasksCompleted:
+          type: integer
+        completionRate:
+          type: integer
+        weeklyActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayActivity"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+
+    DayActivity:
+      type: object
+      required: [date, completed]
+      properties:
+        date:
+          type: string
+          format: date
+        completed:
+          type: integer
+
+    Badge:
+      type: object
+      required: [key, title, description, earned]
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        icon:
+          type: ["string", "null"]
+        earned:
+          type: boolean
+        earnedAt:
+          type: ["string", "null"]
+          format: date-time
+
+    Reminder:
+      type: object
+      required: [id, title, timeOfDay, enabled, daysOfWeek]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        timeOfDay:
+          type: string
+          description: "HH:MM 24-hour"
+        enabled:
+          type: boolean
+        daysOfWeek:
+          type: array
+          description: 0=Sunday .. 6=Saturday
+          items:
+            type: integer
+
+    ReminderInput:
+      type: object
+      required: [title, timeOfDay]
+      properties:
+        title:
+          type: string
+        timeOfDay:
+          type: string
+        enabled:
+          type: boolean
+        daysOfWeek:
+          type: array
+          items:
+            type: integer
+
+    ReminderUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        timeOfDay:
+          type: string
+        enabled:
+          type: boolean
+        daysOfWeek:
+          type: array
+          items:
+            type: integer
+
+    ChatMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          description: user or assistant
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ChatMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+
+    ChatReply:
+      type: object
+      required: [userMessage, assistantMessage]
+      properties:
+        userMessage:
+          $ref: "#/components/schemas/ChatMessage"
+        assistantMessage:
+          $ref: "#/components/schemas/ChatMessage"
