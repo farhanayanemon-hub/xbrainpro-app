@@ -1,3 +1,4 @@
 - [Monorepo lib builds](monorepo-lib-builds.md) — rebuild composite TS libs when TS6305 appears; codegen flow from openapi.yaml.
 - [Drizzle tx typing](drizzle-tx-typing.md) — how to type transaction executors in this repo.
 - [api-server env quirks](api-server-env-quirks.md) — EADDRINUSE on rapid restarts; express body limit must be raised for base64 uploads.
+- [Expo web preview quirks](expo-web-preview-quirks.md) — runTest can't reach Expo (proxy bypass), use screenshot tool; expo-secure-store crashes on web, gate to native + localStorage fallback.
