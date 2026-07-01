@@ -61,6 +61,20 @@ export default function SettingsScreen() {
 
         <View style={styles.group}>
           <Row
+            icon="clipboard-outline"
+            label="Assessment edit korun"
+            onPress={() => router.push("/edit-assessment")}
+            testID="settings-edit-assessment"
+          />
+          <View style={styles.divider} />
+          <Row
+            icon="refresh-outline"
+            label="Notun program shuru korun"
+            onPress={() => router.push("/new-program")}
+            testID="settings-new-program"
+          />
+          <View style={styles.divider} />
+          <Row
             icon="notifications-outline"
             label="Reminders"
             onPress={() => router.push("/reminders")}
@@ -197,6 +211,11 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 15,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: c.cardBorder,
+    marginLeft: 52,
   },
   rowIcon: {
     width: 24,

@@ -69,6 +69,8 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="reminders" />
+      <Stack.Screen name="edit-assessment" />
+      <Stack.Screen name="new-program" />
     </Stack>
   );
 }
