@@ -91,66 +91,71 @@ router.post("/programs", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Archive any existing active programs.
-  await db
-    .update(programsTable)
-    .set({ status: "archived" })
-    .where(
-      and(
-        eq(programsTable.userId, req.user!.id),
-        eq(programsTable.status, "active"),
-      ),
-    );
+  // Create the program, its levels, and tasks atomically so a mid-flow
+  // failure never leaves partial data or wrongly-archived prior programs.
+  const programId = await db.transaction(async (tx) => {
+    await tx
+      .update(programsTable)
+      .set({ status: "archived" })
+      .where(
+        and(
+          eq(programsTable.userId, req.user!.id),
+          eq(programsTable.status, "active"),
+        ),
+      );
 
-  const [program] = await db
-    .insert(programsTable)
-    .values({
-      userId: req.user!.id,
-      pathKey: path.key,
-      title: plan.title,
-      summary: plan.summary,
-      durationDays,
-      status: "active",
-      currentLevel: 1,
-      accent: path.accent,
-    })
-    .returning();
-
-  let dayNumber = 1;
-  for (let i = 0; i < plan.levels.length; i++) {
-    const lvl = plan.levels[i];
-    const levelNumber = i + 1;
-    const [level] = await db
-      .insert(levelsTable)
+    const [program] = await tx
+      .insert(programsTable)
       .values({
-        programId: program.id,
-        levelNumber,
-        title: lvl.title,
-        description: lvl.description,
-        status: levelNumber === 1 ? "active" : "locked",
-        xpReward: 50,
+        userId: req.user!.id,
+        pathKey: path.key,
+        title: plan.title,
+        summary: plan.summary,
+        durationDays,
+        status: "active",
+        currentLevel: 1,
+        accent: path.accent,
       })
       .returning();
 
-    if (lvl.tasks.length > 0) {
-      await db.insert(tasksTable).values(
-        lvl.tasks.map((t, idx) => ({
+    let dayNumber = 1;
+    for (let i = 0; i < plan.levels.length; i++) {
+      const lvl = plan.levels[i];
+      const levelNumber = i + 1;
+      const [level] = await tx
+        .insert(levelsTable)
+        .values({
           programId: program.id,
-          levelId: level.id,
           levelNumber,
-          dayNumber: dayNumber++,
-          orderIndex: idx,
-          title: t.title,
-          description: t.description,
-          timeOfDay: t.timeOfDay,
-          durationMinutes: t.durationMinutes,
-          xp: 15,
-        })),
-      );
-    }
-  }
+          title: lvl.title,
+          description: lvl.description,
+          status: levelNumber === 1 ? "active" : "locked",
+          xpReward: 50,
+        })
+        .returning();
 
-  const loaded = await loadProgram(program.id);
+      if (lvl.tasks.length > 0) {
+        await tx.insert(tasksTable).values(
+          lvl.tasks.map((t, idx) => ({
+            programId: program.id,
+            levelId: level.id,
+            levelNumber,
+            dayNumber: dayNumber++,
+            orderIndex: idx,
+            title: t.title,
+            description: t.description,
+            timeOfDay: t.timeOfDay,
+            durationMinutes: t.durationMinutes,
+            xp: 15,
+          })),
+        );
+      }
+    }
+
+    return program.id;
+  });
+
+  const loaded = await loadProgram(programId);
   res
     .status(201)
     .json(

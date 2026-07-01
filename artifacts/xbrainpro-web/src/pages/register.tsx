@@ -39,7 +39,7 @@ export default function Register() {
         onError: (err) => {
           toast({
             title: "Initialization Failed",
-            description: err.error || "An error occurred during profile creation.",
+            description: err.message || "An error occurred during profile creation.",
             variant: "destructive",
           });
         },

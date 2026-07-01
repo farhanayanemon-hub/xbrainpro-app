@@ -64,6 +64,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
 function Router() {
   const { data: user } = useGetCurrentUser();
+  const [location] = useLocation();
 
   if (!user) {
     return (

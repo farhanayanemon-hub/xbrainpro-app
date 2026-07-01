@@ -1,0 +1,2 @@
+- [Monorepo lib builds](monorepo-lib-builds.md) — composite TS project refs; stale `lib/*/dist` causes TS6305/no-export errors in artifacts; rebuild before typecheck.
+- [Drizzle transaction typing](drizzle-tx-typing.md) — extract the tx type instead of `any`; lock rows with `.for("update")` for read-modify-write correctness.

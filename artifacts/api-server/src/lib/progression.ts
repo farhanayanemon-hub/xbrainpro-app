@@ -10,6 +10,9 @@ import {
 import { levelFromXp } from "./badges";
 import { serializeBadges } from "./serialize";
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Executor = typeof db | Tx;
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -29,12 +32,20 @@ export interface CompletionOutcome {
 
 /**
  * Award XP for a completed task, update the daily streak, and grant any
- * newly-earned badges. Returns the refreshed user and metadata.
+ * newly-earned badges. Must run inside a transaction; the user row is locked
+ * (`SELECT ... FOR UPDATE`) so concurrent completions cannot clobber XP.
  */
 export async function awardTaskCompletion(
-  user: User,
+  tx: Tx,
+  userId: number,
   taskXp: number,
 ): Promise<CompletionOutcome> {
+  const [user] = await tx
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .for("update");
+
   const prevLevel = levelFromXp(user.xp);
   const today = todayStr();
 
@@ -50,21 +61,24 @@ export async function awardTaskCompletion(
   }
 
   const newXp = user.xp + taskXp;
-  const [updated] = await db
+  const [updated] = await tx
     .update(usersTable)
     .set({ xp: newXp, streak, longestStreak, lastActivityDate: today })
-    .where(eq(usersTable.id, user.id))
+    .where(eq(usersTable.id, userId))
     .returning();
 
   const newLevel = levelFromXp(newXp);
   const leveledUp = newLevel > prevLevel;
-  const newBadgeKeys = await evaluateBadges(updated);
+  const newBadgeKeys = await evaluateBadges(tx, updated);
 
   return { user: updated, xpAwarded: taskXp, leveledUp, newBadgeKeys };
 }
 
-export async function countCompletedTasks(userId: number): Promise<number> {
-  const [row] = await db
+export async function countCompletedTasks(
+  exec: Executor,
+  userId: number,
+): Promise<number> {
+  const [row] = await exec
     .select({ c: count() })
     .from(tasksTable)
     .innerJoin(programsTable, eq(tasksTable.programId, programsTable.id))
@@ -72,9 +86,13 @@ export async function countCompletedTasks(userId: number): Promise<number> {
   return row?.c ?? 0;
 }
 
-export async function evaluateBadges(user: User): Promise<string[]> {
+/**
+ * Grant any state-based badges the user now qualifies for (levels, streaks,
+ * XP totals, task counts). Idempotent — already-earned badges are skipped.
+ */
+export async function evaluateBadges(exec: Executor, user: User): Promise<string[]> {
   const level = levelFromXp(user.xp);
-  const completedCount = await countCompletedTasks(user.id);
+  const completedCount = await countCompletedTasks(exec, user.id);
 
   const eligible: string[] = [];
   if (completedCount >= 1) eligible.push("first_step");
@@ -87,20 +105,32 @@ export async function evaluateBadges(user: User): Promise<string[]> {
   if (user.xp >= 500) eligible.push("xp_500");
   if (user.xp >= 1000) eligible.push("xp_1000");
 
-  if (eligible.length === 0) return [];
+  return grantBadges(exec, user.id, eligible);
+}
 
-  const existing = await db
+/**
+ * Insert the given badge keys for a user, skipping any already earned.
+ * Returns the keys that were newly granted.
+ */
+export async function grantBadges(
+  exec: Executor,
+  userId: number,
+  keys: string[],
+): Promise<string[]> {
+  if (keys.length === 0) return [];
+
+  const existing = await exec
     .select()
     .from(earnedBadgesTable)
-    .where(eq(earnedBadgesTable.userId, user.id));
+    .where(eq(earnedBadgesTable.userId, userId));
   const existingKeys = new Set(existing.map((e) => e.badgeKey));
 
-  const toAward = eligible.filter((k) => !existingKeys.has(k));
+  const toAward = keys.filter((k) => !existingKeys.has(k));
   if (toAward.length === 0) return [];
 
-  await db
+  await exec
     .insert(earnedBadgesTable)
-    .values(toAward.map((badgeKey) => ({ userId: user.id, badgeKey })))
+    .values(toAward.map((badgeKey) => ({ userId, badgeKey })))
     .onConflictDoNothing();
 
   return toAward;
@@ -112,8 +142,7 @@ export async function newBadgesResponse(userId: number, keys: string[]) {
     .select()
     .from(earnedBadgesTable)
     .where(eq(earnedBadgesTable.userId, userId));
-  const filtered = rows.filter((r) => keys.includes(r.badgeKey));
-  return serializeBadges(filtered).filter((b) => keys.includes(b.key));
+  return serializeBadges(rows).filter((b) => keys.includes(b.key));
 }
 
 export { todayStr };

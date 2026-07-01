@@ -70,7 +70,7 @@ router.get("/dashboard", requireAuth, async (req, res): Promise<void> => {
 router.get("/progress", requireAuth, async (req, res): Promise<void> => {
   const user = req.user!;
 
-  const totalCompleted = await countCompletedTasks(user.id);
+  const totalCompleted = await countCompletedTasks(db, user.id);
   const [totals] = await db
     .select({ total: sql<number>`count(*)` })
     .from(tasksTable)

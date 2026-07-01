@@ -48,6 +48,7 @@ export default function Start() {
       }, 800);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [generating, generationSteps.length]);
 
   const handleGenerate = () => {
@@ -68,7 +69,7 @@ export default function Start() {
           setGenerating(false);
           toast({
             title: "Generation Failed",
-            description: err.error || "Could not generate protocol.",
+            description: err.message || "Could not generate protocol.",
             variant: "destructive"
           });
         }
