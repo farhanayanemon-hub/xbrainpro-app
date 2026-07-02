@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/xbrainpro-mobile/"
+title = "XBrainPro"
+version = "1.0.0"
+id = "artifacts/xbrainpro-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/xbrainpro-mobile/" ]
+localPort = 25192
+
+[services.development]
+run = "pnpm --filter @workspace/xbrainpro-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/xbrainpro-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/xbrainpro-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "25192"
+BASE_PATH = "/xbrainpro-mobile/"
