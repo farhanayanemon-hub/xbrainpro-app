@@ -28,5 +28,25 @@ and the mobile app can point `setBaseUrl` at that same domain.
 - Lib packages (`api-client-react`, `api-zod`, `db`) export TS source and have no build
   step; only `xbrainpro-web` + `api-server` need building.
 - Runtime secrets the deploy needs: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-  `OPENROUTER_API_KEY`.
+  `OPENROUTER_API_KEY`, and `DATABASE_URL` (Supabase Session-pooler Postgres URI —
+  the Replit dev Helium DB is unreachable from Railway; drizzle-kit push was run
+  against Supabase to create the schema).
 - Mobile (Expo) is NOT deployed to Railway; point its API domain at the deployed URL.
+
+**Deployed state (live):**
+- Railway project `nurturing-dedication` (id db162504-62e1-4924-859b-dcfaa00b6bfb),
+  env `production` (5575ae11-d0b9-47d2-8638-b702cfa0a7e0), single service `xbrainpro`
+  (a3481cde-e065-486d-8356-7d21dd093777) from GitHub `farhanayanemon-hub/xbrainpro-app` main.
+- URL: https://xbrainpro-production.up.railway.app (do NOT touch the user's other
+  project `hospitable-nourishment`).
+
+**Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
+- User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
+  `projects`/mutations work. Always `.strip()` the token — pasted secrets may carry a
+  trailing newline that silently breaks the Authorization header.
+- Python urllib gets 403 from backboard without a User-Agent header; curl works. Set UA.
+- Free plan blocks `projectCreate` ("resource provision limit exceeded") — reuse/clean an
+  existing project (delete extra services) instead of creating a new one.
+- Deploy flow: variableUpsert → serviceInstanceDeploy → poll latestDeployment.status →
+  serviceDomainCreate. Edge 404 "Application not found" = deployment never went live
+  (health check failing); read `deploymentLogs(deploymentId)` for the real error.
