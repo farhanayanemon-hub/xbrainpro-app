@@ -3,3 +3,4 @@
 - [api-server env quirks](api-server-env-quirks.md) — EADDRINUSE on rapid restarts; express body limit must be raised for base64 uploads.
 - [Railway / single-service deploy](railway-deploy.md) — web uses relative `/api`, so deploy web+API as ONE Express service; build needs BASE_PATH=/ + PORT set.
 - [Expo web preview quirks](expo-web-preview-quirks.md) — runTest can't reach Expo (proxy bypass), use screenshot tool; expo-secure-store crashes on web, gate to native + localStorage fallback.
+- [React Query auth loading loop](react-query-auth-loop.md) — auth gate + child sharing an errored query needs `retryOnMount: false` or it loops forever on 401.
