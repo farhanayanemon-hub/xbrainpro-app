@@ -87,8 +87,8 @@ async function callOpenRouter(
 
 /**
  * Best-effort extraction of a JSON object from model output. Handles code
- * fences, leading/trailing prose, and repairs common model mistakes
- * (trailing commas, unquoted values) that free-tier models produce.
+ * fences, leading/trailing prose, and repairs trailing-comma mistakes
+ * that free-tier models produce.
  */
 export function extractJsonObject(raw: string): string {
   let text = raw.trim();
