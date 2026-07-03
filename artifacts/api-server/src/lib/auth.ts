@@ -102,3 +102,21 @@ export async function requireAuth(
   req.user = user;
   next();
 }
+
+export async function requireAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const user = await resolveUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  if (!user.isAdmin) {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  req.user = user;
+  next();
+}
