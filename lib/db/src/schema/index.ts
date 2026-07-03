@@ -7,3 +7,4 @@ export * from "./tasks";
 export * from "./badges";
 export * from "./reminders";
 export * from "./chat";
+export * from "./settings";

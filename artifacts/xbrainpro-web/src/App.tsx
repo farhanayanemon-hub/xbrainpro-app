@@ -23,6 +23,7 @@ import Progress from "@/pages/progress";
 import Coach from "@/pages/coach";
 import Reminders from "@/pages/reminders";
 import Settings from "@/pages/settings";
+import Admin from "@/pages/admin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,7 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -81,6 +83,7 @@ function Router() {
   return (
     <AppLayout>
       <Switch>
+        <Route path="/admin" component={Admin} />
         {/* If logged in but not onboarded, redirect to onboarding */}
         {!user.onboarded && location !== "/onboarding" && <Route path="*" component={() => {
            window.location.href = "/onboarding";
