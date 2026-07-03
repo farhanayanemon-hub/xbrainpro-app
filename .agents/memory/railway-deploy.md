@@ -40,6 +40,17 @@ and the mobile app can point `setBaseUrl` at that same domain.
 - URL: https://xbrainpro-production.up.railway.app (do NOT touch the user's other
   project `hospitable-nourishment`).
 
+**Custom domain (www.xbrainpro.com):**
+- Root `@` CNAME was NOT possible: user actively uses Hostinger email on xbrainpro.com
+  (MX/SPF at `@` conflict with CNAME). Chose `www` CNAME instead; root still points to
+  Hostinger hosting — optional hPanel redirect root→www can be added later.
+- Free plan = 1 custom domain per service; deleted root domain entry before adding www.
+- Hostinger DNS API: `developers.hostinger.com/api/dns/v1/zones/{domain}` (Bearer token).
+  DELETE with `{"filters":[{"name","type"}]}` to remove records, PUT with
+  `{"overwrite":true,"zone":[...]}` to upsert. Zone publish takes a couple of minutes —
+  verify via Google DoH (`dns.google/resolve`), local resolver caches stale answers.
+- Railway CNAME target for www: `c7heca45.up.railway.app` (regenerated if domain re-added).
+
 **Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
 - User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
   `projects`/mutations work. Always `.strip()` the token — pasted secrets may carry a
