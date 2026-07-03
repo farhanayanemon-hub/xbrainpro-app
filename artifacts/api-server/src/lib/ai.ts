@@ -24,39 +24,97 @@ function apiKey(): string {
   return key;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function callOpenRouter(
   messages: ChatTurn[],
   opts: { json?: boolean; temperature?: number; maxTokens?: number } = {},
 ): Promise<string> {
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey()}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://xbrainpro.app",
-      "X-Title": "XBrainPro",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: opts.temperature ?? 0.8,
-      max_tokens: opts.maxTokens ?? 4000,
-      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
+  const maxAttempts = 3;
+  let lastError: Error = new Error("OpenRouter request failed");
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    logger.error({ status: res.status, body: text }, "OpenRouter request failed");
-    throw new Error(`OpenRouter error ${res.status}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const res = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey()}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://xbrainpro.app",
+        "X-Title": "XBrainPro",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        temperature: opts.temperature ?? 0.8,
+        max_tokens: opts.maxTokens ?? 4000,
+        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+
+    if (res.status === 429 || res.status >= 500) {
+      const text = await res.text().catch(() => "");
+      logger.warn(
+        { status: res.status, body: text.slice(0, 300), attempt },
+        "OpenRouter transient error, retrying",
+      );
+      lastError = new Error(`OpenRouter error ${res.status}`);
+      if (attempt < maxAttempts) {
+        await sleep(attempt * 3000);
+        continue;
+      }
+      throw lastError;
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      logger.error(
+        { status: res.status, body: text.slice(0, 500) },
+        "OpenRouter request failed",
+      );
+      throw new Error(`OpenRouter error ${res.status}`);
+    }
+
+    const data = (await res.json()) as OpenRouterResponse;
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("OpenRouter returned no content");
+    }
+    return content;
   }
 
-  const data = (await res.json()) as OpenRouterResponse;
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error("OpenRouter returned no content");
+  throw lastError;
+}
+
+/**
+ * Best-effort extraction of a JSON object from model output. Handles code
+ * fences, leading/trailing prose, and repairs trailing-comma mistakes
+ * that free-tier models produce.
+ */
+export function extractJsonObject(raw: string): string {
+  let text = raw.trim();
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) text = fenced[1].trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    text = text.slice(start, end + 1);
   }
-  return content;
+  return text;
+}
+
+function tryParseJson<T>(raw: string): T | null {
+  const text = extractJsonObject(raw);
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // Repair pass: remove trailing commas before } or ]
+    const repaired = text.replace(/,\s*([}\]])/g, "$1");
+    try {
+      return JSON.parse(repaired) as T;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export interface GeneratedTask {
@@ -118,24 +176,40 @@ Return ONLY valid JSON in this exact shape:
   ]
 }`;
 
-  const raw = await callOpenRouter(
-    [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    { json: true, temperature: 0.85, maxTokens: 6000 },
-  );
+  const messages: ChatTurn[] = [
+    { role: "system", content: system },
+    { role: "user", content: user },
+  ];
 
-  let parsed: GeneratedPlan;
-  try {
-    parsed = JSON.parse(raw) as GeneratedPlan;
-  } catch (err) {
-    logger.error({ err, raw: raw.slice(0, 500) }, "Failed to parse AI plan JSON");
-    throw new Error("AI returned invalid plan");
+  let parsed: GeneratedPlan | null = null;
+  const maxAttempts = 2;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Lower temperature on retry: creative output matters less than valid JSON.
+    const temperature = attempt === 1 ? 0.7 : 0.3;
+    const raw = await callOpenRouter(messages, {
+      json: true,
+      temperature,
+      maxTokens: 8000,
+    });
+
+    const candidate = tryParseJson<GeneratedPlan>(raw);
+    if (
+      candidate &&
+      Array.isArray(candidate.levels) &&
+      candidate.levels.length > 0
+    ) {
+      parsed = candidate;
+      break;
+    }
+    logger.warn(
+      { attempt, raw: raw.slice(0, 500) },
+      "AI plan JSON invalid, retrying",
+    );
   }
 
-  if (!parsed.levels || !Array.isArray(parsed.levels) || parsed.levels.length === 0) {
-    throw new Error("AI plan had no levels");
+  if (!parsed) {
+    logger.error("AI plan generation failed after retries");
+    throw new Error("AI returned invalid plan");
   }
 
   // Normalize / clamp

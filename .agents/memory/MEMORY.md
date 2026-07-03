@@ -4,3 +4,4 @@
 - [Railway / single-service deploy](railway-deploy.md) — web uses relative `/api`, so deploy web+API as ONE Express service; build needs BASE_PATH=/ + PORT set.
 - [Expo web preview quirks](expo-web-preview-quirks.md) — runTest can't reach Expo (proxy bypass), use screenshot tool; expo-secure-store crashes on web, gate to native + localStorage fallback.
 - [React Query auth loading loop](react-query-auth-loop.md) — auth gate + child sharing an errored query needs `retryOnMount: false` or it loops forever on 401.
+- [OpenRouter free-tier reliability](openrouter-free-tier.md) — 402 = no credits; model is env-driven via OPENROUTER_MODEL; free models need JSON repair + retries + per-user lock.

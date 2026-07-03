@@ -24,6 +24,11 @@ import { loadProgram, getActiveProgram } from "../lib/programs";
 
 const router: IRouter = Router();
 
+// Guards against duplicate plan generation: free-tier AI models can take
+// 1-2 minutes, and a client retry mid-generation would otherwise create a
+// second program and archive the first.
+const generatingUsers = new Set<number>();
+
 router.get("/programs", requireAuth, async (req, res): Promise<void> => {
   const programs = await db
     .select()
@@ -68,13 +73,23 @@ router.post("/programs", requireAuth, async (req, res): Promise<void> => {
   }
   const durationDays = parsed.data.durationDays === 60 ? 60 : 30;
 
-  const [profile] = await db
-    .select()
-    .from(profilesTable)
-    .where(eq(profilesTable.userId, req.user!.id));
+  const userId = req.user!.id;
+  if (generatingUsers.has(userId)) {
+    res.status(409).json({
+      error:
+        "Your plan is already being generated. Please wait a moment and refresh.",
+    });
+    return;
+  }
+  generatingUsers.add(userId);
 
   let plan;
   try {
+    const [profile] = await db
+      .select()
+      .from(profilesTable)
+      .where(eq(profilesTable.userId, userId));
+
     plan = await generatePlan(path, durationDays, {
       about: parsed.data.about ?? profile?.about,
       currentSituation:
@@ -89,6 +104,8 @@ router.post("/programs", requireAuth, async (req, res): Promise<void> => {
       .status(502)
       .json({ error: "Could not generate your plan right now. Please try again." });
     return;
+  } finally {
+    generatingUsers.delete(userId);
   }
 
   // Create the program, its levels, and tasks atomically so a mid-flow
