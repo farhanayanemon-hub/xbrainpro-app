@@ -1,8 +1,20 @@
 import { logger } from "./logger";
 import type { PathDef } from "./paths";
+import { getSetting, SETTING_KEYS } from "./settings";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
+export const DEFAULT_MODEL = "openai/gpt-4o-mini";
+
+/** Model priority: admin panel setting > OPENROUTER_MODEL env > default. */
+export async function resolveModel(): Promise<string> {
+  try {
+    const fromSetting = await getSetting(SETTING_KEYS.openrouterModel);
+    if (fromSetting?.trim()) return fromSetting.trim();
+  } catch (err) {
+    logger.warn({ err }, "Failed to read model setting, using env/default");
+  }
+  return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
+}
 
 export interface ChatTurn {
   role: "system" | "user" | "assistant";
@@ -33,6 +45,7 @@ async function callOpenRouter(
   const maxAttempts = 3;
   let lastError: Error = new Error("OpenRouter request failed");
 
+  const model = await resolveModel();
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -43,7 +56,7 @@ async function callOpenRouter(
         "X-Title": "XBrainPro",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages,
         temperature: opts.temperature ?? 0.8,
         max_tokens: opts.maxTokens ?? 4000,
