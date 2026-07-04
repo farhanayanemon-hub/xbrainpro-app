@@ -49,7 +49,16 @@ and the mobile app can point `setBaseUrl` at that same domain.
   DELETE with `{"filters":[{"name","type"}]}` to remove records, PUT with
   `{"overwrite":true,"zone":[...]}` to upsert. Zone publish takes a couple of minutes —
   verify via Google DoH (`dns.google/resolve`), local resolver caches stale answers.
-- Railway CNAME target for www: `c7heca45.up.railway.app` (regenerated if domain re-added).
+- Railway CNAME target for www changes EVERY time the domain is re-added — after any
+  customDomainDelete/customDomainCreate, read the new `requiredValue` and update the
+  Hostinger `www` CNAME to match (current: `f37v91iw.up.railway.app`).
+- **Cert stuck in `VALIDATING_OWNERSHIP` root cause: Railway requires TWO DNS records —
+  the CNAME AND a TXT record `_railway-verify.www` containing the `verificationToken`
+  from GraphQL domain status (`status { verificationToken }`).** The `dnsRecords` list
+  only shows the CNAME (misleading!) and `certificateErrorMessage` stays null; without
+  the TXT the cert never issues. Adding the TXT flipped the cert to VALID in <2 min.
+  Until then the edge serves the `*.up.railway.app` wildcard cert and browsers show
+  "site can't be reached".
 
 **Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
 - User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
