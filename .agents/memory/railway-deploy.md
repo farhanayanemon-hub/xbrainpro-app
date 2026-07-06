@@ -86,15 +86,20 @@ and the mobile app can point `setBaseUrl` at that same domain.
   email) in CF first. Needs a Cloudflare account/token (none configured). Hostinger
   apex forwarding is NOT a substitute (no HTTPS for the apex, flaky).
 
-**CURRENT LIVE DOMAIN STATE (as of this session):** Per user's "leave it as is" decision,
-the single Railway custom-domain slot was switched from `www` → the apex `xbrainpro.com`
-(Railway target `2b55zfvy.up.railway.app`). Hostinger apex `@` is now `ALIAS →
-2b55zfvy.up.railway.app` (+ `_railway-verify` TXT), and the old apex A/AAAA (Hostinger
-forwarding `2.57.91.91`) were removed. Email records untouched/working. NET RESULT:
-`www.xbrainpro.com` is currently DOWN (no longer a Railway domain; its CNAME +
-`_railway-verify.www` TXT still linger in the zone), and `https://xbrainpro.com` has no
-valid cert (stuck validating), so the apex is not yet loadable in browsers. User plans
-to change the domain later; revisit with Cloudflare when they're ready.
+**CURRENT LIVE DOMAIN STATE — apex now works securely, Cloudflare NOT needed:**
+The old "Railway can't do apex" limitation above no longer holds in practice. Hostinger
+apex `@` is `ALIAS → 2b55zfvy.up.railway.app` (flattens to Railway edge IP, e.g.
+`69.46.46.24`) with the root `_railway-verify` TXT present, and **Railway HAS issued a
+valid Let's Encrypt cert for `xbrainpro.com`** — `https://xbrainpro.com` returns 200
+serving the app (`server: railway-hikari`), cert `CN=xbrainpro.com`, and `http://` 301s
+to `https://`. So the apex padlock goal is MET without any Cloudflare/nameserver change.
+Email (MX mx1/mx2.hostinger.com, SPF, 3x DKIM, DMARC, autodiscover/autoconfig) is intact
+on Hostinger NS (dns-parking). `www` was a stale broken Railway CNAME (SSL name-mismatch);
+its `www` CNAME + `_railway-verify.www` TXT were DELETED, so `www` is now NXDOMAIN (no
+scary warning) but does NOT serve/redirect. To make `www` active again it must be added
+as a 2nd custom domain in the **Railway dashboard** — the team API token CANNOT do it:
+both the `domains` read query and `customDomainCreate`/`customDomainDelete` mutations
+return "Not Authorized" (only deploy/variable mutations work with this token).
 
 **Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
 - User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
