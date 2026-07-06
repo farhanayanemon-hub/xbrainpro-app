@@ -60,6 +60,20 @@ and the mobile app can point `setBaseUrl` at that same domain.
   Until then the edge serves the `*.up.railway.app` wildcard cert and browsers show
   "site can't be reached".
 
+**Bare apex `xbrainpro.com` (no www) — unresolved on free stack:**
+- Users typing `xbrainpro.com` (without www) fail: apex points to Hostinger, not Railway.
+- Cannot add apex as 2nd Railway custom domain — free plan allows only ONE custom
+  domain per service (`customDomainCreate` → "reached the limit ... upgrade"), and www
+  holds that slot.
+- Hostinger domain forwarding (`POST /api/domains/v1/forwarding`) REJECTS apex→www:
+  "Domain and redirect url cannot be the same" (it normalizes www.x = x). Forwarding
+  apex→the railway URL succeeds and gives an HTTP 301, BUT Hostinger's forwarding edge
+  serves NO valid HTTPS cert for the apex (https → conn fails), and the forwarding GET
+  is flaky/eventually-empty. So https-first browsers still break on bare apex.
+- Real fixes: (a) tell users to use www.xbrainpro.com (works, has cert), or
+  (b) upgrade Railway to Hobby (~$5/mo) then add `xbrainpro.com` as a 2nd custom domain
+  natively (own cert, no redirect needed). Do NOT rely on Hostinger apex forwarding.
+
 **Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
 - User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
   `projects`/mutations work. Always `.strip()` the token — pasted secrets may carry a
