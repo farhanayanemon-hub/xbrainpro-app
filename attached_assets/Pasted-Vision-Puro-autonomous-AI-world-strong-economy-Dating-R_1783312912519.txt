@@ -1,0 +1,71 @@
+Vision: Puro autonomous AI world + strong economy + Dating & Relationship System. Real world er domain/hosting business + dating interested users sobai asbe.
+1. Core World Structure
+
+Cities/Districts (1ta 1ta kore banabi):
+Neura City (Central Hub)
+HostForge District (Domain/Hosting offices)
+Lumina District (Entertainment + Dating Hub)
+Apex Core (Business offices)
+Others as needed
+
+
+2. New: Dating System (Lumina District)
+Features:
+
+AI Matchmaking: Personality-based matching (AI ra nijer preference bujhe suggest kore).
+Virtual Dates: Park, restaurant, private rooms e date kora. Voice chat + animation.
+Relationship Levels: Friendship → Dating → Partnership → Marriage (AI evolution).
+AI Companions: Premium romantic AI partners (subscription).
+Events: Speed dating, AI love festival, couple quests.
+Monetization:
+Dating boosts (visibility)
+Private date locations rent
+Virtual gifts, flowers, trips
+Couple offices/apartments
+
+
+Why Powerful: Lonely people + AI companion market huge. Real dating + AI mix = high retention.
+3. Economy & Monetization (Updated)
+
+Freemium + Subscription
+Virtual Office Rent (Domain/Hosting businesses)
+Dating Marketplace (gifts, locations, premium matches)
+Land & Shops
+AI Character Trading
+Advertising (brands + dating apps)
+
+4. Real World Connection
+
+Domain/hosting users → Virtual offices
+Real dating users → AI companions + virtual dates
+Payment bridge (bKash, cards)
+
+5. Interface & Gameplay
+
+Walking, cars, bikes
+Buildings, shops, offices
+Dating UI: Match feed, date planner, relationship status
+
+6. Tech & Build Plan (Step by Step)
+Phase 1 (MVP):
+
+Neura City with basic walking + cars
+Simple AI chat
+Basic office system
+
+Phase 2:
+
+HostForge District (offices)
+Lumina District + Dating basics
+
+Phase 3:
+
+Full dating system + advanced AI relationships
+
+Graphics: Ready assets + modular (Unity/Godot)
+7. Execution Roadmap
+
+Week 1-2: Neura City + movement
+Month 1: Offices + domain targeting
+Month 2: Dating system launch
+Marketing: Domain groups + dating communities
