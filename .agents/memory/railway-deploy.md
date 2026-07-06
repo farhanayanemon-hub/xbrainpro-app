@@ -60,19 +60,41 @@ and the mobile app can point `setBaseUrl` at that same domain.
   Until then the edge serves the `*.up.railway.app` wildcard cert and browsers show
   "site can't be reached".
 
-**Bare apex `xbrainpro.com` (no www) — unresolved on free stack:**
-- Users typing `xbrainpro.com` (without www) fail: apex points to Hostinger, not Railway.
-- Cannot add apex as 2nd Railway custom domain — free plan allows only ONE custom
-  domain per service (`customDomainCreate` → "reached the limit ... upgrade"), and www
-  holds that slot.
-- Hostinger domain forwarding (`POST /api/domains/v1/forwarding`) REJECTS apex→www:
-  "Domain and redirect url cannot be the same" (it normalizes www.x = x). Forwarding
-  apex→the railway URL succeeds and gives an HTTP 301, BUT Hostinger's forwarding edge
-  serves NO valid HTTPS cert for the apex (https → conn fails), and the forwarding GET
-  is flaky/eventually-empty. So https-first browsers still break on bare apex.
-- Real fixes: (a) tell users to use www.xbrainpro.com (works, has cert), or
-  (b) upgrade Railway to Hobby (~$5/mo) then add `xbrainpro.com` as a 2nd custom domain
-  natively (own cert, no redirect needed). Do NOT rely on Hostinger apex forwarding.
+**Bare apex `xbrainpro.com` (no www) — Railway will NOT issue a cert for it:**
+- KEY LESSON: Railway custom-domain ownership validation does a *literal CNAME-record
+  lookup* at the domain. At an apex you cannot have a real CNAME, so with an ALIAS /
+  CNAME-flattening record the CNAME query returns the flattened A (NODATA for CNAME) →
+  Railway's `dnsRecords` shows `currentValue: ""`, status stays `REQUIRES_UPDATE`, and
+  `certificateStatus` sits at `VALIDATING_OWNERSHIP` forever. Adding the `_railway-verify`
+  TXT does NOT unblock it (that only helped `www`, which had a real CNAME). Verified by
+  waiting 15+ min with ALIAS resolving to the Railway edge and the TXT confirmed live.
+- Consequence: apex over HTTPS is impossible with Railway serving it directly, on ANY
+  plan (this is a validation limitation, not the 1-domain free-plan limit). Upgrading
+  Railway does NOT fix apex.
+- Hostinger facts learned: DNS API ACCEPTS type `ALIAS` (and it flattens/resolves to the
+  target's A at query time — good CNAME-flattening) but REJECTS `ANAME` (422 invalid
+  type). `PUT /api/dns/v1/zones/{domain}` with `overwrite:true` UPSERTS per (name,type)
+  only — it does NOT wipe the whole zone (email MX/SPF/DKIM survived). `DELETE` body is
+  `{"filters":[{"name","type"}]}`. Right after adding a record, public resolvers may
+  negative-cache NXDOMAIN for the SOA min TTL (~300s) — verify via cloudflare-dns.com DoH,
+  not just dns.google.
+- The ONLY reliable way to serve the app at bare `https://xbrainpro.com` with this
+  registrar is to put a proxy that terminates SSL at the apex in front of Railway —
+  i.e. move DNS to **Cloudflare** (free): apex proxied CNAME (flattened) → the Railway
+  target, SSL Full; CF serves the browser its own valid cert so Railway's stuck cert is
+  irrelevant. Requires nameserver change at Hostinger + replicating ALL records (esp.
+  email) in CF first. Needs a Cloudflare account/token (none configured). Hostinger
+  apex forwarding is NOT a substitute (no HTTPS for the apex, flaky).
+
+**CURRENT LIVE DOMAIN STATE (as of this session):** Per user's "leave it as is" decision,
+the single Railway custom-domain slot was switched from `www` → the apex `xbrainpro.com`
+(Railway target `2b55zfvy.up.railway.app`). Hostinger apex `@` is now `ALIAS →
+2b55zfvy.up.railway.app` (+ `_railway-verify` TXT), and the old apex A/AAAA (Hostinger
+forwarding `2.57.91.91`) were removed. Email records untouched/working. NET RESULT:
+`www.xbrainpro.com` is currently DOWN (no longer a Railway domain; its CNAME +
+`_railway-verify.www` TXT still linger in the zone), and `https://xbrainpro.com` has no
+valid cert (stuck validating), so the apex is not yet loadable in browsers. User plans
+to change the domain later; revisit with Cloudflare when they're ready.
 
 **Railway API gotchas (GraphQL backboard.railway.com/graphql/v2):**
 - User's token is a TEAM token: `me`/`externalWorkspaces` return "Not Authorized" but
