@@ -22,7 +22,17 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
 
 // Expo bundles run outside the web proxy and need an absolute API base URL.
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+// In production web exports (served by the api-server itself, e.g. at /play),
+// EXPO_PUBLIC_DOMAIN is not set — use the page's own origin so relative /api
+// calls hit the same server.
+const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
+setBaseUrl(
+  apiDomain
+    ? `https://${apiDomain}`
+    : typeof window !== "undefined"
+      ? window.location.origin
+      : null,
+);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

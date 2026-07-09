@@ -45,6 +45,21 @@ if (process.env["NODE_ENV"] === "production") {
     ? path.resolve(process.env["WEB_STATIC_DIR"])
     : path.resolve(here, "../../xbrainpro-web/dist/public");
 
+  // Neura City game (Expo web export) served at /play from the same origin.
+  const playDir = process.env["PLAY_STATIC_DIR"]
+    ? path.resolve(process.env["PLAY_STATIC_DIR"])
+    : path.resolve(here, "../../xbrainpro-mobile/web-dist");
+  if (fs.existsSync(playDir)) {
+    app.use("/play", express.static(playDir));
+    app.use("/play", (req, res, next) => {
+      if (req.method !== "GET") return next();
+      res.sendFile(path.join(playDir, "index.html"));
+    });
+    logger.info({ playDir }, "Serving Neura City web build at /play");
+  } else {
+    logger.warn({ playDir }, "Neura City web build not found; /play disabled");
+  }
+
   if (fs.existsSync(staticDir)) {
     app.use(express.static(staticDir));
     // SPA fallback: any non-API GET returns index.html.
