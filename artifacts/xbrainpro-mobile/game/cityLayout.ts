@@ -4,14 +4,20 @@
  * user-supplied 3D models can later replace entries without touching logic.
  */
 
+import { BUILDING_MODELS, type ModelId } from "@/game/models";
+
 export interface BuildingDef {
   x: number;
   z: number;
   w: number;
   d: number;
   h: number;
-  color: string;
-  neon: string;
+  /** Which GLB model renders this lot. */
+  model: ModelId;
+  /** Native (unscaled) height of that model, used to compute Y scale. */
+  nativeH: number;
+  /** Yaw so the model's front faces the nearest road. */
+  rotY: number;
 }
 
 export interface Aabb {
@@ -21,8 +27,19 @@ export interface Aabb {
   maxZ: number;
 }
 
-const NEON = ["#ff5c8a", "#4dd6ff", "#b18cff", "#ffd166", "#63f5c2"];
-const WALL = ["#232946", "#2b2d52", "#20304e", "#30284e", "#263251", "#2e2440"];
+const ROAD_HALF = 2.5;
+
+/** Face the nearest road: vertical road runs along x=0, horizontal along z=0. */
+function faceRoad(x: number, z: number): number {
+  const distV = Math.abs(x) - ROAD_HALF;
+  const distH = Math.abs(z) - ROAD_HALF;
+  if (distV < distH) {
+    // face toward the vertical road (point front along -x when x > 0)
+    return x > 0 ? -Math.PI / 2 : Math.PI / 2;
+  }
+  // face toward the horizontal road (point front along -z when z > 0)
+  return z > 0 ? Math.PI : 0;
+}
 
 function b(
   i: number,
@@ -32,7 +49,8 @@ function b(
   d: number,
   h: number,
 ): BuildingDef {
-  return { x, z, w, d, h, color: WALL[i % WALL.length], neon: NEON[i % NEON.length] };
+  const m = BUILDING_MODELS[i % BUILDING_MODELS.length];
+  return { x, z, w, d, h, model: m.id, nativeH: m.nativeH, rotY: faceRoad(x, z) };
 }
 
 /** Roads run along x = 0 and z = 0 (width 5). Plaza sits at the crossing. */
@@ -61,24 +79,86 @@ export const BUILDINGS: BuildingDef[] = [
   b(17, 21, 19, 5, 5, 7),
 ];
 
-export const TREES: { x: number; z: number }[] = [
-  { x: 6, z: -6.5 },
-  { x: -6, z: -6.5 },
-  { x: 6.5, z: 6 },
-  { x: -6.5, z: 6.5 },
-  { x: 14, z: -5 },
-  { x: -14, z: 5 },
-  { x: 15, z: 6 },
-  { x: -15, z: -5 },
+export interface TreeDef {
+  x: number;
+  z: number;
+  model: ModelId;
+  scale: number;
+}
+
+export const TREES: TreeDef[] = [
+  { x: 6, z: -6.5, model: "treeA", scale: 2.4 },
+  { x: -6, z: -6.5, model: "treeB", scale: 2.2 },
+  { x: 6.5, z: 6, model: "treeB", scale: 2.5 },
+  { x: -6.5, z: 6.5, model: "treeA", scale: 2.3 },
+  { x: 14, z: -5, model: "treeA", scale: 2.6 },
+  { x: -14, z: 5, model: "treeB", scale: 2.4 },
+  { x: 15, z: 6, model: "treeB", scale: 2.2 },
+  { x: -15, z: -5, model: "treeA", scale: 2.5 },
+  // leafy clusters in the block corners
+  { x: 24, z: 25, model: "treeCluster", scale: 3 },
+  { x: -25, z: 24, model: "treeCluster", scale: 3.2 },
+  { x: -24, z: -26, model: "treeCluster", scale: 3 },
+  { x: 25, z: -25, model: "treeCluster", scale: 3.4 },
 ];
 
-export const LAMPS: { x: number; z: number }[] = [
-  { x: 3.4, z: -3.4 },
-  { x: -3.4, z: -3.4 },
-  { x: 3.4, z: 3.4 },
-  { x: -3.4, z: 3.4 },
-  { x: 10, z: -3.4 },
-  { x: -10, z: 3.4 },
+export const LAMPS: { x: number; z: number; rotY: number }[] = [
+  { x: 3.4, z: -3.4, rotY: Math.PI / 2 },
+  { x: -3.4, z: -3.4, rotY: -Math.PI / 2 },
+  { x: 3.4, z: 3.4, rotY: Math.PI / 2 },
+  { x: -3.4, z: 3.4, rotY: -Math.PI / 2 },
+  { x: 10, z: -3.4, rotY: 0 },
+  { x: -10, z: 3.4, rotY: Math.PI },
+  { x: 3.4, z: -14, rotY: Math.PI / 2 },
+  { x: -3.4, z: 14, rotY: -Math.PI / 2 },
+];
+
+export interface PropDef {
+  model: ModelId;
+  x: number;
+  z: number;
+  rotY: number;
+  scale: number;
+}
+
+/** Decorative props (no collision). */
+export const PROPS: PropDef[] = [
+  { model: "bench", x: 5.2, z: -2.2, rotY: -Math.PI / 2, scale: 4 },
+  { model: "bench", x: -5.2, z: 2.2, rotY: Math.PI / 2, scale: 4 },
+  { model: "bench", x: 2.2, z: 5.4, rotY: Math.PI, scale: 4 },
+  { model: "trash", x: 4.6, z: -3.5, rotY: 0, scale: 4 },
+  { model: "trash", x: -4.6, z: 3.5, rotY: 0, scale: 4 },
+  { model: "firehydrant", x: 3.5, z: 9.5, rotY: Math.PI / 2, scale: 3.5 },
+  { model: "firehydrant", x: -3.5, z: -9.5, rotY: -Math.PI / 2, scale: 3.5 },
+  { model: "dumpster", x: 7.4, z: -8.6, rotY: 0.4, scale: 3.2 },
+  { model: "dumpster", x: -7.6, z: 8.8, rotY: -2.6, scale: 3.2 },
+  { model: "trafficlight", x: 3.2, z: -10.5, rotY: Math.PI / 2, scale: 3.4 },
+  { model: "trafficlight", x: -3.2, z: 10.5, rotY: -Math.PI / 2, scale: 3.4 },
+  { model: "bush", x: 5.6, z: -9.2, rotY: 1.3, scale: 3.4 },
+  { model: "bush", x: -5.8, z: 9.4, rotY: 2.1, scale: 3.4 },
+  { model: "bush", x: 9.2, z: 5.6, rotY: 0.4, scale: 3 },
+  { model: "bush", x: -9.4, z: -5.8, rotY: 2.8, scale: 3 },
+];
+
+/** Rooftop water towers (purely visual, sit on top of two buildings). */
+export const ROOF_PROPS: PropDef[] = [
+  { model: "watertower", x: 11, z: -19, rotY: 0.6, scale: 3 },
+  { model: "watertower", x: -13, z: 20, rotY: -1.1, scale: 2.6 },
+];
+/** Y positions (= building heights) for ROOF_PROPS, index-aligned. */
+export const ROOF_PROP_Y = [12, 10];
+
+export interface CarDef extends PropDef {
+  /** Collision half-extents in world units (x, z). */
+  halfW: number;
+  halfD: number;
+}
+
+/** Parked cars on the road edges (players collide with these). */
+export const CARS: CarDef[] = [
+  { model: "carSedan", x: 1.55, z: 14, rotY: 0, scale: 4, halfW: 0.95, halfD: 2 },
+  { model: "carTaxi", x: -1.55, z: -13, rotY: Math.PI, scale: 4, halfW: 0.95, halfD: 2 },
+  { model: "carHatchback", x: 15, z: 1.55, rotY: Math.PI / 2, scale: 4, halfW: 1.8, halfD: 0.95 },
 ];
 
 /** Fountain at plaza center. */
@@ -105,6 +185,17 @@ export const COLLIDERS: Aabb[] = [
         maxZ: bd.z + bd.d / 2,
       },
       PLAYER_RADIUS,
+    ),
+  ),
+  ...CARS.map((c) =>
+    expand(
+      {
+        minX: c.x - c.halfW,
+        maxX: c.x + c.halfW,
+        minZ: c.z - c.halfD,
+        maxZ: c.z + c.halfD,
+      },
+      PLAYER_RADIUS - 0.15,
     ),
   ),
   expand(

@@ -6,3 +6,4 @@
 - [React Query auth loading loop](react-query-auth-loop.md) — auth gate + child sharing an errored query needs `retryOnMount: false` or it loops forever on 401.
 - [OpenRouter free-tier reliability](openrouter-free-tier.md) — 402 = no credits; model is env-driven via OPENROUTER_MODEL; free models need JSON repair + retries + per-user lock.
 - [Dev vs prod databases diverge](dev-prod-databases.md) — helium dev DB vs Supabase prod DB; apply schema pushes and seed users to BOTH.
+- [R3F GLB assets in Expo](r3f-glb-assets.md) — metro assetExts + drei useGLTF with module IDs; drei platform split via moduleSuffixes; headless bundle/GLB verify recipe.

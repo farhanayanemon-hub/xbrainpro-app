@@ -32,6 +32,7 @@ export default function GameCanvas({
       style={{ flex: 1 }}
       camera={{ position: [0, 6.5, 17], fov: 55 }}
       dpr={[1, 2]}
+      shadows
       onCreated={() => onReady?.()}
     >
       {children}

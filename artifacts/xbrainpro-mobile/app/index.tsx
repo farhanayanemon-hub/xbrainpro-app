@@ -53,10 +53,14 @@ export default function NeuraCity() {
     <View style={styles.root}>
       <ErrorBoundary FallbackComponent={WorldFallback}>
         <GameCanvas
-          onReady={() => setReady(true)}
           fallback={<GlUnavailable onShown={() => setReady(true)} />}
         >
-          <WorldScene onNearNpc={onNearNpc} />
+          <React.Suspense fallback={null}>
+            <WorldScene
+              onNearNpc={onNearNpc}
+              onLoaded={() => setReady(true)}
+            />
+          </React.Suspense>
         </GameCanvas>
       </ErrorBoundary>
 

@@ -14,6 +14,7 @@ export default function GameCanvas({
     <Canvas
       style={{ flex: 1 }}
       camera={{ position: [0, 6.5, 17], fov: 55 }}
+      shadows
       onCreated={() => onReady?.()}
     >
       {children}

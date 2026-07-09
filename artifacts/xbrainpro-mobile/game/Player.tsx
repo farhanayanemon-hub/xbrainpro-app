@@ -103,35 +103,35 @@ export default function Player({
     <group ref={group} position={[game.player.x, 0, game.player.z]}>
       <group ref={bodyGroup}>
         {/* legs */}
-        <mesh position={[-0.14, 0.35, 0]}>
+        <mesh castShadow position={[-0.14, 0.35, 0]}>
           <boxGeometry args={[0.2, 0.7, 0.24]} />
           <meshStandardMaterial color="#2d3561" />
         </mesh>
-        <mesh position={[0.14, 0.35, 0]}>
+        <mesh castShadow position={[0.14, 0.35, 0]}>
           <boxGeometry args={[0.2, 0.7, 0.24]} />
           <meshStandardMaterial color="#2d3561" />
         </mesh>
         {/* torso */}
-        <mesh position={[0, 1.05, 0]}>
+        <mesh castShadow position={[0, 1.05, 0]}>
           <boxGeometry args={[0.62, 0.75, 0.34]} />
           <meshStandardMaterial color="#ff5c8a" />
         </mesh>
         {/* arms */}
-        <mesh position={[-0.42, 1.02, 0]}>
+        <mesh castShadow position={[-0.42, 1.02, 0]}>
           <boxGeometry args={[0.16, 0.62, 0.2]} />
           <meshStandardMaterial color="#e84876" />
         </mesh>
-        <mesh position={[0.42, 1.02, 0]}>
+        <mesh castShadow position={[0.42, 1.02, 0]}>
           <boxGeometry args={[0.16, 0.62, 0.2]} />
           <meshStandardMaterial color="#e84876" />
         </mesh>
         {/* head */}
-        <mesh position={[0, 1.72, 0]}>
+        <mesh castShadow position={[0, 1.72, 0]}>
           <boxGeometry args={[0.44, 0.44, 0.4]} />
           <meshStandardMaterial color="#f2c9a1" />
         </mesh>
         {/* hair cap */}
-        <mesh position={[0, 1.93, -0.03]}>
+        <mesh castShadow position={[0, 1.93, -0.03]}>
           <boxGeometry args={[0.48, 0.16, 0.44]} />
           <meshStandardMaterial color="#31284b" />
         </mesh>

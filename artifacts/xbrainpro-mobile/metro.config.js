@@ -1,3 +1,8 @@
 const { getDefaultConfig } = require("expo/metro-config");
 
-module.exports = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
+
+// Bundle 3D model files as assets.
+config.resolver.assetExts = [...config.resolver.assetExts, "glb", "gltf"];
+
+module.exports = config;

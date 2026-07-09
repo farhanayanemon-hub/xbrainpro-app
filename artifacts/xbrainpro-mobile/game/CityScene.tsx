@@ -1,187 +1,243 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 
 import {
   BUILDINGS,
+  CARS,
   FOUNTAIN,
   LAMPS,
+  PROPS,
+  ROOF_PROP_Y,
+  ROOF_PROPS,
   STALL,
   TREES,
+  type BuildingDef,
 } from "@/game/cityLayout";
+import { useTexture } from "@/game/drei";
+import Model from "@/game/Model";
+import {
+  BUILDING_NATIVE_FOOTPRINT,
+  TEXTURE_SOURCES,
+  type TextureId,
+} from "@/game/models";
 
-function Building({
-  x,
-  z,
-  w,
-  d,
-  h,
-  color,
-  neon,
-}: (typeof BUILDINGS)[number]) {
+/** Load a bundled ground texture and give it its own repeat settings. */
+function useGroundTexture(id: TextureId, rx: number, ry: number): Texture {
+  const tex = useTexture(TEXTURE_SOURCES[id] as unknown as string) as Texture;
+  return useMemo(() => {
+    const t = tex.clone();
+    t.wrapS = RepeatWrapping;
+    t.wrapT = RepeatWrapping;
+    t.repeat.set(rx, ry);
+    t.colorSpace = SRGBColorSpace;
+    t.anisotropy = 4;
+    t.needsUpdate = true;
+    return t;
+  }, [tex, rx, ry]);
+}
+
+function Building(bd: BuildingDef) {
+  const sx = bd.w / BUILDING_NATIVE_FOOTPRINT;
+  const sz = bd.d / BUILDING_NATIVE_FOOTPRINT;
+  const sy = bd.h / bd.nativeH;
   return (
-    <group position={[x, 0, z]}>
-      <mesh position={[0, h / 2, 0]} castShadow={false}>
-        <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {/* roof cap */}
-      <mesh position={[0, h + 0.15, 0]}>
-        <boxGeometry args={[w * 0.7, 0.3, d * 0.7]} />
-        <meshStandardMaterial color="#161a33" />
-      </mesh>
-      {/* neon sign strip facing the nearest road */}
-      <mesh
-        position={[
-          x > 0 ? -w / 2 - 0.02 : w / 2 + 0.02,
-          h * 0.55,
-          0,
-        ]}
-        rotation={[0, x > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[Math.min(d * 0.6, 2.6), 0.45]} />
-        <meshStandardMaterial
-          color={neon}
-          emissive={neon}
-          emissiveIntensity={1.6}
-        />
-      </mesh>
-      {/* lit window rows */}
-      <mesh
-        position={[0, h * 0.45, z > 0 ? -d / 2 - 0.02 : d / 2 + 0.02]}
-        rotation={[0, z > 0 ? Math.PI : 0, 0]}
-      >
-        <planeGeometry args={[w * 0.75, h * 0.55]} />
-        <meshStandardMaterial
-          color="#0e1226"
-          emissive="#ffb677"
-          emissiveIntensity={0.35}
-        />
-      </mesh>
-    </group>
+    <Model
+      id={bd.model}
+      position={[bd.x, 0, bd.z]}
+      rotationY={bd.rotY}
+      scale={[sx, sy, sz]}
+    />
   );
 }
 
-function Tree({ x, z }: { x: number; z: number }) {
-  return (
-    <group position={[x, 0, z]}>
-      <mesh position={[0, 0.5, 0]}>
-        <cylinderGeometry args={[0.12, 0.16, 1, 6]} />
-        <meshStandardMaterial color="#4a3b32" />
-      </mesh>
-      <mesh position={[0, 1.5, 0]}>
-        <coneGeometry args={[0.85, 1.9, 6]} />
-        <meshStandardMaterial color="#2f7d5c" />
-      </mesh>
-    </group>
-  );
-}
-
-function Lamp({ x, z }: { x: number; z: number }) {
-  return (
-    <group position={[x, 0, z]}>
-      <mesh position={[0, 1.4, 0]}>
-        <cylinderGeometry args={[0.05, 0.07, 2.8, 6]} />
-        <meshStandardMaterial color="#3a4062" />
-      </mesh>
-      <mesh position={[0, 2.85, 0]}>
-        <sphereGeometry args={[0.18, 8, 8]} />
-        <meshStandardMaterial
-          color="#ffd9a0"
-          emissive="#ffca7a"
-          emissiveIntensity={2}
-        />
-      </mesh>
-    </group>
-  );
+/** Dashed center-line segments, skipping the plaza circle. */
+const DASH_POSITIONS: number[] = [];
+for (let p = -33; p <= 33; p += 3) {
+  if (Math.abs(p) > 9) DASH_POSITIONS.push(p);
 }
 
 export default function CityScene() {
+  const grass = useGroundTexture("grass", 14, 14);
+  const asphaltV = useGroundTexture("asphalt", 1, 14);
+  const asphaltH = useGroundTexture("asphalt", 14, 1);
+  const pavingPlaza = useGroundTexture("paving", 6, 6);
+  const pavingWalkV = useGroundTexture("paving", 1, 24);
+  const pavingWalkH = useGroundTexture("paving", 24, 1);
+
   return (
     <group>
-      {/* ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      {/* grass ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[70, 70]} />
-        <meshStandardMaterial color="#1b2033" />
+        <meshStandardMaterial map={grass} color="#b8c9a0" />
       </mesh>
-      {/* roads */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+
+      {/* asphalt roads */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
         <planeGeometry args={[5, 70]} />
-        <meshStandardMaterial color="#141726" />
+        <meshStandardMaterial map={asphaltV} color="#9c9c9c" />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
         <planeGeometry args={[70, 5]} />
-        <meshStandardMaterial color="#141726" />
+        <meshStandardMaterial map={asphaltH} color="#9c9c9c" />
       </mesh>
-      {/* road center glow strips */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <planeGeometry args={[0.12, 70]} />
-        <meshStandardMaterial
-          color="#4dd6ff"
-          emissive="#4dd6ff"
-          emissiveIntensity={0.8}
-        />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <planeGeometry args={[70, 0.12]} />
-        <meshStandardMaterial
-          color="#ff5c8a"
-          emissive="#ff5c8a"
-          emissiveIntensity={0.8}
-        />
-      </mesh>
-      {/* plaza disc */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
-        <circleGeometry args={[8, 32]} />
-        <meshStandardMaterial color="#20263f" />
+
+      {/* sidewalks along both roads */}
+      {[3.4, -3.4].map((x) => (
+        <mesh
+          key={`swv${x}`}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[x, 0.04, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[1.8, 70]} />
+          <meshStandardMaterial map={pavingWalkV} color="#cfcabe" />
+        </mesh>
+      ))}
+      {[3.4, -3.4].map((z) => (
+        <mesh
+          key={`swh${z}`}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0.04, z]}
+          receiveShadow
+        >
+          <planeGeometry args={[70, 1.8]} />
+          <meshStandardMaterial map={pavingWalkH} color="#cfcabe" />
+        </mesh>
+      ))}
+
+      {/* dashed lane markings */}
+      {DASH_POSITIONS.map((z) => (
+        <mesh
+          key={`dv${z}`}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0.06, z]}
+        >
+          <planeGeometry args={[0.14, 1.3]} />
+          <meshStandardMaterial color="#e8e6da" />
+        </mesh>
+      ))}
+      {DASH_POSITIONS.map((x) => (
+        <mesh
+          key={`dh${x}`}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[x, 0.06, 0]}
+        >
+          <planeGeometry args={[1.3, 0.14]} />
+          <meshStandardMaterial color="#e8e6da" />
+        </mesh>
+      ))}
+
+      {/* paved plaza over the crossing */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]} receiveShadow>
+        <circleGeometry args={[8, 40]} />
+        <meshStandardMaterial map={pavingPlaza} color="#d8d2c4" />
       </mesh>
 
       {/* fountain */}
       <group position={[FOUNTAIN.x, 0, FOUNTAIN.z]}>
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[FOUNTAIN.radius, FOUNTAIN.radius + 0.2, 0.6, 20]} />
-          <meshStandardMaterial color="#2c3357" />
+        <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+          <cylinderGeometry
+            args={[FOUNTAIN.radius, FOUNTAIN.radius + 0.2, 0.6, 24]}
+          />
+          <meshStandardMaterial color="#a7abb3" roughness={0.9} />
         </mesh>
         <mesh position={[0, 0.62, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[FOUNTAIN.radius - 0.25, 20]} />
+          <circleGeometry args={[FOUNTAIN.radius - 0.25, 24]} />
           <meshStandardMaterial
-            color="#3ec8e8"
-            emissive="#3ec8e8"
-            emissiveIntensity={0.9}
+            color="#4db3d4"
+            emissive="#1d6a85"
+            emissiveIntensity={0.25}
+            roughness={0.15}
           />
         </mesh>
-        <mesh position={[0, 1.1, 0]}>
-          <cylinderGeometry args={[0.16, 0.24, 1, 8]} />
-          <meshStandardMaterial color="#39406b" />
+        <mesh position={[0, 1.1, 0]} castShadow>
+          <cylinderGeometry args={[0.16, 0.24, 1, 10]} />
+          <meshStandardMaterial color="#8f939b" roughness={0.9} />
         </mesh>
       </group>
 
       {/* Rex's noodle stall */}
       <group position={[STALL.x, 0, STALL.z]}>
-        <mesh position={[0, STALL.h / 2 - 0.4, 0]}>
+        <mesh position={[0, STALL.h / 2 - 0.4, 0]} castShadow>
           <boxGeometry args={[STALL.w, STALL.h - 0.8, STALL.d]} />
-          <meshStandardMaterial color="#5b3a4a" />
+          <meshStandardMaterial color="#8a5a36" roughness={0.85} />
         </mesh>
-        <mesh position={[0, STALL.h + 0.05, 0]}>
+        <mesh position={[0, STALL.h + 0.05, 0]} castShadow>
           <boxGeometry args={[STALL.w + 0.5, 0.14, STALL.d + 0.5]} />
-          <meshStandardMaterial color="#c8455f" />
+          <meshStandardMaterial color="#c8455f" roughness={0.7} />
         </mesh>
-        <mesh position={[STALL.w / 2 + 0.02, STALL.h - 0.55, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh
+          position={[STALL.w / 2 + 0.02, STALL.h - 0.55, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
           <planeGeometry args={[1.2, 0.4]} />
           <meshStandardMaterial
             color="#ffd166"
             emissive="#ffd166"
-            emissiveIntensity={1.8}
+            emissiveIntensity={0.6}
           />
         </mesh>
       </group>
 
+      {/* buildings */}
       {BUILDINGS.map((bd, i) => (
         <Building key={i} {...bd} />
       ))}
+
+      {/* trees */}
       {TREES.map((t, i) => (
-        <Tree key={i} {...t} />
+        <Model
+          key={`tree${i}`}
+          id={t.model}
+          position={[t.x, 0, t.z]}
+          rotationY={(i * 73) % 6}
+          scale={t.scale}
+        />
       ))}
+
+      {/* streetlights */}
       {LAMPS.map((l, i) => (
-        <Lamp key={i} {...l} />
+        <Model
+          key={`lamp${i}`}
+          id="streetlight"
+          position={[l.x, 0, l.z]}
+          rotationY={l.rotY}
+          scale={3.5}
+        />
+      ))}
+
+      {/* street props */}
+      {PROPS.map((p, i) => (
+        <Model
+          key={`prop${i}`}
+          id={p.model}
+          position={[p.x, 0, p.z]}
+          rotationY={p.rotY}
+          scale={p.scale}
+        />
+      ))}
+
+      {/* rooftop water towers */}
+      {ROOF_PROPS.map((p, i) => (
+        <Model
+          key={`roof${i}`}
+          id={p.model}
+          position={[p.x, ROOF_PROP_Y[i], p.z]}
+          rotationY={p.rotY}
+          scale={p.scale}
+        />
+      ))}
+
+      {/* parked cars */}
+      {CARS.map((c, i) => (
+        <Model
+          key={`car${i}`}
+          id={c.model}
+          position={[c.x, 0, c.z]}
+          rotationY={c.rotY}
+          scale={c.scale}
+        />
       ))}
     </group>
   );

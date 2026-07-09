@@ -24,31 +24,31 @@ export default function Npc({ npc }: { npc: NpcDef }) {
   return (
     <group position={[npc.x, 0, npc.z]}>
       <group ref={body}>
-        <mesh position={[-0.13, 0.33, 0]}>
+        <mesh castShadow position={[-0.13, 0.33, 0]}>
           <boxGeometry args={[0.18, 0.66, 0.22]} />
           <meshStandardMaterial color="#232946" />
         </mesh>
-        <mesh position={[0.13, 0.33, 0]}>
+        <mesh castShadow position={[0.13, 0.33, 0]}>
           <boxGeometry args={[0.18, 0.66, 0.22]} />
           <meshStandardMaterial color="#232946" />
         </mesh>
-        <mesh position={[0, 1, 0]}>
+        <mesh castShadow position={[0, 1, 0]}>
           <boxGeometry args={[0.58, 0.72, 0.32]} />
           <meshStandardMaterial color={npc.color} />
         </mesh>
-        <mesh position={[-0.4, 0.98, 0]}>
+        <mesh castShadow position={[-0.4, 0.98, 0]}>
           <boxGeometry args={[0.15, 0.58, 0.18]} />
           <meshStandardMaterial color={npc.color} />
         </mesh>
-        <mesh position={[0.4, 0.98, 0]}>
+        <mesh castShadow position={[0.4, 0.98, 0]}>
           <boxGeometry args={[0.15, 0.58, 0.18]} />
           <meshStandardMaterial color={npc.color} />
         </mesh>
-        <mesh position={[0, 1.64, 0]}>
+        <mesh castShadow position={[0, 1.64, 0]}>
           <boxGeometry args={[0.42, 0.42, 0.38]} />
           <meshStandardMaterial color="#f2c9a1" />
         </mesh>
-        <mesh position={[0, 1.85, -0.02]}>
+        <mesh castShadow position={[0, 1.85, -0.02]}>
           <boxGeometry args={[0.46, 0.14, 0.42]} />
           <meshStandardMaterial color="#1c1c2c" />
         </mesh>
