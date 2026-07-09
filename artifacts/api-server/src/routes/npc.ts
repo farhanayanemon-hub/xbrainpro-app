@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { NpcChatBody } from "@workspace/api-zod";
-import { npcReply, type NpcHistoryTurn, type NpcId } from "../lib/npc";
+import { npcReply, UnknownNpcError, type NpcHistoryTurn } from "../lib/npc";
 
 const router: IRouter = Router();
 
@@ -60,8 +60,12 @@ router.post("/npc/chat", async (req, res): Promise<void> => {
 
   let reply: string;
   try {
-    reply = await npcReply(npcId as NpcId, turns, message);
+    reply = await npcReply(npcId, turns, message);
   } catch (err) {
+    if (err instanceof UnknownNpcError) {
+      res.status(404).json({ error: "That citizen doesn't live here." });
+      return;
+    }
     req.log.error({ err }, "NPC reply failed");
     res.status(502).json({
       error: "The NPC is unavailable right now. Please try again.",

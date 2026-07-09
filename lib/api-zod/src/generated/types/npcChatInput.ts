@@ -5,11 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { NpcChatInputNpcId } from './npcChatInputNpcId';
 import type { NpcChatTurn } from './npcChatTurn';
 
 export interface NpcChatInput {
-  npcId: NpcChatInputNpcId;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  npcId: string;
   /**
      * @minLength 1
      * @maxLength 1000

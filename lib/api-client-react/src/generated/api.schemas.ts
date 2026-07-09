@@ -280,16 +280,12 @@ export interface NpcChatTurn {
   content: string;
 }
 
-export type NpcChatInputNpcId = typeof NpcChatInputNpcId[keyof typeof NpcChatInputNpcId];
-
-
-export const NpcChatInputNpcId = {
-  lumi: 'lumi',
-  rex: 'rex',
-} as const;
-
 export interface NpcChatInput {
-  npcId: NpcChatInputNpcId;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  npcId: string;
   /**
      * @minLength 1
      * @maxLength 1000
@@ -301,5 +297,37 @@ export interface NpcChatInput {
 
 export interface NpcChatReply {
   reply: string;
+}
+
+export type WorldObjectKind = typeof WorldObjectKind[keyof typeof WorldObjectKind];
+
+
+export const WorldObjectKind = {
+  building: 'building',
+  tree: 'tree',
+  lamp: 'lamp',
+  prop: 'prop',
+  roofProp: 'roofProp',
+  car: 'car',
+  fountain: 'fountain',
+  stall: 'stall',
+  npc: 'npc',
+} as const;
+
+export type WorldObjectData = { [key: string]: unknown };
+
+/**
+ * One placed object in the world. `kind` selects the client renderer; `data` carries kind-specific fields (bundled model id, position, rotation, scale, collision size, ...).
+ */
+export interface WorldObject {
+  id: number;
+  kind: WorldObjectKind;
+  data: WorldObjectData;
+}
+
+export interface WorldMap {
+  /** Monotonically increasing map version; also served as a weak ETag. */
+  version: number;
+  objects: WorldObject[];
 }
 

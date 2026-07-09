@@ -10,6 +10,7 @@ import remindersRouter from "./reminders";
 import chatRouter from "./chat";
 import npcRouter from "./npc";
 import adminRouter from "./admin";
+import worldRouter from "./world";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(remindersRouter);
 router.use(chatRouter);
 router.use(npcRouter);
 router.use(adminRouter);
+router.use(worldRouter);
 
 export default router;

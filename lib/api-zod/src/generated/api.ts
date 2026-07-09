@@ -641,12 +641,14 @@ export const SendChatMessageResponse = zod.object({
  * Anonymous, stateless endpoint. The client sends recent history; the server does not persist it.
  * @summary Send a message to a Neura City NPC and get an in-character reply
  */
+export const npcChatBodyNpcIdMax = 64;
+
 export const npcChatBodyMessageMax = 1000;
 
 
 
 export const NpcChatBody = zod.object({
-  "npcId": zod.enum(['lumi', 'rex']),
+  "npcId": zod.string().min(1).max(npcChatBodyNpcIdMax),
   "message": zod.string().min(1).max(npcChatBodyMessageMax),
   "history": zod.array(zod.object({
   "role": zod.enum(['user', 'npc']),
@@ -656,6 +658,20 @@ export const NpcChatBody = zod.object({
 
 export const NpcChatResponse = zod.object({
   "reply": zod.string()
+})
+
+
+/**
+ * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
+ * @summary Get the current Neura City world map
+ */
+export const GetWorldMapResponse = zod.object({
+  "version": zod.number().describe('Monotonically increasing map version; also served as a weak ETag.'),
+  "objects": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.enum(['building', 'tree', 'lamp', 'prop', 'roofProp', 'car', 'fountain', 'stall', 'npc']),
+  "data": zod.record(zod.string(), zod.unknown())
+}).describe('One placed object in the world. `kind` selects the client renderer; `data` carries kind-specific fields (bundled model id, position, rotation, scale, collision size, ...).'))
 })
 
 

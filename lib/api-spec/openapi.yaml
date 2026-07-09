@@ -28,6 +28,8 @@ tags:
     description: AI coach chat
   - name: npc
     description: Neura City NPC chat
+  - name: world
+    description: Neura City world map
 paths:
   /healthz:
     get:
@@ -558,6 +560,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /world/map:
+    get:
+      operationId: getWorldMap
+      tags: [world]
+      summary: Get the current Neura City world map
+      description: Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
+      responses:
+        "200":
+          description: The world map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorldMap"
+
 components:
   schemas:
     HealthStatus:
@@ -1036,7 +1052,8 @@ components:
       properties:
         npcId:
           type: string
-          enum: [lumi, rex]
+          minLength: 1
+          maxLength: 64
         message:
           type: string
           minLength: 1
@@ -1053,3 +1070,29 @@ components:
       properties:
         reply:
           type: string
+
+    WorldObject:
+      type: object
+      description: One placed object in the world. `kind` selects the client renderer; `data` carries kind-specific fields (bundled model id, position, rotation, scale, collision size, ...).
+      required: [id, kind, data]
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+          enum: [building, tree, lamp, prop, roofProp, car, fountain, stall, npc]
+        data:
+          type: object
+          additionalProperties: true
+
+    WorldMap:
+      type: object
+      required: [version, objects]
+      properties:
+        version:
+          type: integer
+          description: Monotonically increasing map version; also served as a weak ETag.
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorldObject"

@@ -21,8 +21,13 @@ import {
   saveAvatarId,
 } from "@/game/avatar";
 import GameCanvas from "@/game/GameCanvas";
-import { NPCS } from "@/game/npcs";
 import { game, resetInput } from "@/game/store";
+import {
+  DEFAULT_MAP,
+  loadWorldMap,
+  setActiveWorldMap,
+  type ParsedWorldMap,
+} from "@/game/worldMap";
 import WorldScene from "@/game/WorldScene";
 
 export default function NeuraCity() {
@@ -34,6 +39,7 @@ export default function NeuraCity() {
   const [paused, setPaused] = useState(false);
   const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
   const [pickingAvatar, setPickingAvatar] = useState(false);
+  const [worldMap, setWorldMap] = useState<ParsedWorldMap>(DEFAULT_MAP);
 
   const userPickedAvatar = useRef(false);
 
@@ -42,6 +48,19 @@ export default function NeuraCity() {
     loadAvatarId().then((id) => {
       // Don't clobber a choice the user made before hydration finished.
       if (!cancelled && !userPickedAvatar.current) setAvatarId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch the live world map (cache/offline fallback handled inside).
+  useEffect(() => {
+    let cancelled = false;
+    loadWorldMap().then((map) => {
+      if (cancelled) return;
+      setActiveWorldMap(map);
+      setWorldMap(map);
     });
     return () => {
       cancelled = true;
@@ -69,12 +88,12 @@ export default function NeuraCity() {
   const onNearNpc = useCallback((id: string | null) => setNearNpcId(id), []);
 
   const nearNpc = useMemo(
-    () => NPCS.find((n) => n.id === nearNpcId) ?? null,
-    [nearNpcId],
+    () => worldMap.npcs.find((n) => n.id === nearNpcId) ?? null,
+    [worldMap, nearNpcId],
   );
   const chatNpc = useMemo(
-    () => NPCS.find((n) => n.id === chatNpcId) ?? null,
-    [chatNpcId],
+    () => worldMap.npcs.find((n) => n.id === chatNpcId) ?? null,
+    [worldMap, chatNpcId],
   );
 
   const WorldFallback = useCallback(() => {
@@ -90,6 +109,7 @@ export default function NeuraCity() {
         >
           <React.Suspense fallback={null}>
             <WorldScene
+              map={worldMap}
               avatarId={avatarId}
               onNearNpc={onNearNpc}
               onLoaded={() => setReady(true)}

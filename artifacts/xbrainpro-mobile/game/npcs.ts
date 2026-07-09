@@ -1,5 +1,6 @@
 export interface NpcDef {
-  id: "lumi" | "rex";
+  /** Server-driven NPCs can have any id; "lumi" and "rex" are the built-ins. */
+  id: string;
   name: string;
   title: string;
   /** Body color of the low-poly character. */

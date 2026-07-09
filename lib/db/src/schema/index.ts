@@ -8,3 +8,4 @@ export * from "./badges";
 export * from "./reminders";
 export * from "./chat";
 export * from "./settings";
+export * from "./world";

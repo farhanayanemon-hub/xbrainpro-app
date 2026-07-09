@@ -45,7 +45,8 @@ import type {
   ReminderUpdate,
   Task,
   TaskCompletionResult,
-  User
+  User,
+  WorldMap
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2129,4 +2130,82 @@ export const useNpcChat = <TError = ErrorType<Error>,
       > => {
       return useMutation(getNpcChatMutationOptions(options));
     }
+
+export const getGetWorldMapUrl = () => {
+
+
+
+
+  return `/api/world/map`
+}
+
+/**
+ * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
+ * @summary Get the current Neura City world map
+ */
+export const getWorldMap = async ( options?: RequestInit): Promise<WorldMap> => {
+
+  return customFetch<WorldMap>(getGetWorldMapUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorldMapQueryKey = () => {
+    return [
+    `/api/world/map`
+    ] as const;
+    }
+
+
+export const getGetWorldMapQueryOptions = <TData = Awaited<ReturnType<typeof getWorldMap>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorldMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorldMapQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorldMap>>> = ({ signal }) => getWorldMap({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorldMap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorldMapQueryResult = NonNullable<Awaited<ReturnType<typeof getWorldMap>>>
+export type GetWorldMapQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current Neura City world map
+ */
+
+export function useGetWorldMap<TData = Awaited<ReturnType<typeof getWorldMap>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorldMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorldMapQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

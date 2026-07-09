@@ -3,16 +3,18 @@ import React, { useEffect } from "react";
 import CityScene from "@/game/CityScene";
 import { Sky } from "@/game/drei";
 import Npc from "@/game/Npc";
-import { NPCS } from "@/game/npcs";
 import Player from "@/game/Player";
+import type { ParsedWorldMap } from "@/game/worldMap";
 
 const SUN_POSITION: [number, number, number] = [35, 42, -20];
 
 export default function WorldScene({
+  map,
   avatarId,
   onNearNpc,
   onLoaded,
 }: {
+  map: ParsedWorldMap;
   avatarId: string;
   onNearNpc: (npcId: string | null) => void;
   /** Fires once all suspended assets (models, textures) are ready. */
@@ -50,8 +52,8 @@ export default function WorldScene({
         shadow-camera-far={120}
         shadow-bias={-0.0005}
       />
-      <CityScene />
-      {NPCS.map((n) => (
+      <CityScene map={map} />
+      {map.npcs.map((n) => (
         <Npc key={n.id} npc={n} />
       ))}
       <Player avatarId={avatarId} onNearNpc={onNearNpc} />

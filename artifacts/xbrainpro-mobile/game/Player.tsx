@@ -4,16 +4,16 @@ import type { Group } from "three";
 import { Vector3 } from "three";
 
 import Avatar from "@/game/Avatar";
-import { COLLIDERS, WORLD_BOUND } from "@/game/cityLayout";
-import { NPCS, TALK_DISTANCE } from "@/game/npcs";
+import { TALK_DISTANCE } from "@/game/npcs";
 import { game } from "@/game/store";
+import { world } from "@/game/worldMap";
 
 const SPEED = 5;
 
 function resolveCollisions(x: number, z: number): [number, number] {
   let nx = x;
   let nz = z;
-  for (const c of COLLIDERS) {
+  for (const c of world.colliders) {
     if (nx > c.minX && nx < c.maxX && nz > c.minZ && nz < c.maxZ) {
       const pushLeft = nx - c.minX;
       const pushRight = c.maxX - nx;
@@ -102,8 +102,8 @@ export default function Player({
       const dirZ = -iy / (mag || 1);
       let nx = game.player.x + dirX * step;
       let nz = game.player.z + dirZ * step;
-      nx = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, nx));
-      nz = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, nz));
+      nx = Math.max(-world.bound, Math.min(world.bound, nx));
+      nz = Math.max(-world.bound, Math.min(world.bound, nz));
       [nx, nz] = resolveCollisions(nx, nz);
       game.player.x = nx;
       game.player.z = nz;
@@ -130,7 +130,7 @@ export default function Player({
 
     // NPC proximity
     let near: string | null = null;
-    for (const n of NPCS) {
+    for (const n of world.map.npcs) {
       const d = Math.hypot(n.x - game.player.x, n.z - game.player.z);
       if (d < TALK_DISTANCE) {
         near = n.id;

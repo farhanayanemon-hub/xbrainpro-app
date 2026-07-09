@@ -1,18 +1,7 @@
 import React, { useMemo } from "react";
 import { RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 
-import {
-  BUILDINGS,
-  CARS,
-  FOUNTAIN,
-  LAMPS,
-  PROPS,
-  ROOF_PROP_Y,
-  ROOF_PROPS,
-  STALL,
-  TREES,
-  type BuildingDef,
-} from "@/game/cityLayout";
+import type { BuildingDef } from "@/game/cityLayout";
 import { useTexture } from "@/game/drei";
 import Model from "@/game/Model";
 import {
@@ -20,6 +9,7 @@ import {
   TEXTURE_SOURCES,
   type TextureId,
 } from "@/game/models";
+import type { FountainDef, ParsedWorldMap, StallDef } from "@/game/worldMap";
 
 /** Load a bundled ground texture and give it its own repeat settings. */
 function useGroundTexture(id: TextureId, rx: number, ry: number): Texture {
@@ -50,13 +40,63 @@ function Building(bd: BuildingDef) {
   );
 }
 
+function Fountain({ f }: { f: FountainDef }) {
+  return (
+    <group position={[f.x, 0, f.z]}>
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[f.radius, f.radius + 0.2, 0.6, 24]} />
+        <meshStandardMaterial color="#a7abb3" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.62, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[f.radius - 0.25, 24]} />
+        <meshStandardMaterial
+          color="#4db3d4"
+          emissive="#1d6a85"
+          emissiveIntensity={0.25}
+          roughness={0.15}
+        />
+      </mesh>
+      <mesh position={[0, 1.1, 0]} castShadow>
+        <cylinderGeometry args={[0.16, 0.24, 1, 10]} />
+        <meshStandardMaterial color="#8f939b" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+function Stall({ s }: { s: StallDef }) {
+  return (
+    <group position={[s.x, 0, s.z]}>
+      <mesh position={[0, s.h / 2 - 0.4, 0]} castShadow>
+        <boxGeometry args={[s.w, s.h - 0.8, s.d]} />
+        <meshStandardMaterial color="#8a5a36" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, s.h + 0.05, 0]} castShadow>
+        <boxGeometry args={[s.w + 0.5, 0.14, s.d + 0.5]} />
+        <meshStandardMaterial color="#c8455f" roughness={0.7} />
+      </mesh>
+      <mesh
+        position={[s.w / 2 + 0.02, s.h - 0.55, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+      >
+        <planeGeometry args={[1.2, 0.4]} />
+        <meshStandardMaterial
+          color="#ffd166"
+          emissive="#ffd166"
+          emissiveIntensity={0.6}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 /** Dashed center-line segments, skipping the plaza circle. */
 const DASH_POSITIONS: number[] = [];
 for (let p = -33; p <= 33; p += 3) {
   if (Math.abs(p) > 9) DASH_POSITIONS.push(p);
 }
 
-export default function CityScene() {
+export default function CityScene({ map }: { map: ParsedWorldMap }) {
   const grass = useGroundTexture("grass", 14, 14);
   const asphaltV = useGroundTexture("asphalt", 1, 14);
   const asphaltH = useGroundTexture("asphalt", 14, 1);
@@ -134,81 +174,45 @@ export default function CityScene() {
         <meshStandardMaterial map={pavingPlaza} color="#d8d2c4" />
       </mesh>
 
-      {/* fountain */}
-      <group position={[FOUNTAIN.x, 0, FOUNTAIN.z]}>
-        <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
-          <cylinderGeometry
-            args={[FOUNTAIN.radius, FOUNTAIN.radius + 0.2, 0.6, 24]}
-          />
-          <meshStandardMaterial color="#a7abb3" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 0.62, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[FOUNTAIN.radius - 0.25, 24]} />
-          <meshStandardMaterial
-            color="#4db3d4"
-            emissive="#1d6a85"
-            emissiveIntensity={0.25}
-            roughness={0.15}
-          />
-        </mesh>
-        <mesh position={[0, 1.1, 0]} castShadow>
-          <cylinderGeometry args={[0.16, 0.24, 1, 10]} />
-          <meshStandardMaterial color="#8f939b" roughness={0.9} />
-        </mesh>
-      </group>
+      {/* fountains */}
+      {map.fountains.map((f, i) => (
+        <Fountain key={`fountain${i}`} f={f} />
+      ))}
 
-      {/* Rex's noodle stall */}
-      <group position={[STALL.x, 0, STALL.z]}>
-        <mesh position={[0, STALL.h / 2 - 0.4, 0]} castShadow>
-          <boxGeometry args={[STALL.w, STALL.h - 0.8, STALL.d]} />
-          <meshStandardMaterial color="#8a5a36" roughness={0.85} />
-        </mesh>
-        <mesh position={[0, STALL.h + 0.05, 0]} castShadow>
-          <boxGeometry args={[STALL.w + 0.5, 0.14, STALL.d + 0.5]} />
-          <meshStandardMaterial color="#c8455f" roughness={0.7} />
-        </mesh>
-        <mesh
-          position={[STALL.w / 2 + 0.02, STALL.h - 0.55, 0]}
-          rotation={[0, Math.PI / 2, 0]}
-        >
-          <planeGeometry args={[1.2, 0.4]} />
-          <meshStandardMaterial
-            color="#ffd166"
-            emissive="#ffd166"
-            emissiveIntensity={0.6}
-          />
-        </mesh>
-      </group>
+      {/* market stalls */}
+      {map.stalls.map((s, i) => (
+        <Stall key={`stall${i}`} s={s} />
+      ))}
 
       {/* buildings */}
-      {BUILDINGS.map((bd, i) => (
-        <Building key={i} {...bd} />
+      {map.buildings.map((bd, i) => (
+        <Building key={`b${i}-${bd.model}`} {...bd} />
       ))}
 
       {/* trees */}
-      {TREES.map((t, i) => (
+      {map.trees.map((t, i) => (
         <Model
           key={`tree${i}`}
           id={t.model}
           position={[t.x, 0, t.z]}
-          rotationY={(i * 73) % 6}
+          rotationY={t.rotY}
           scale={t.scale}
         />
       ))}
 
       {/* streetlights */}
-      {LAMPS.map((l, i) => (
+      {map.lamps.map((l, i) => (
         <Model
           key={`lamp${i}`}
-          id="streetlight"
+          id={l.model}
           position={[l.x, 0, l.z]}
           rotationY={l.rotY}
-          scale={3.5}
+          scale={l.scale}
         />
       ))}
 
       {/* street props */}
-      {PROPS.map((p, i) => (
+      {map.props.map((p, i) => (
         <Model
           key={`prop${i}`}
           id={p.model}
@@ -218,19 +222,19 @@ export default function CityScene() {
         />
       ))}
 
-      {/* rooftop water towers */}
-      {ROOF_PROPS.map((p, i) => (
+      {/* rooftop props */}
+      {map.roofProps.map((p, i) => (
         <Model
           key={`roof${i}`}
           id={p.model}
-          position={[p.x, ROOF_PROP_Y[i], p.z]}
+          position={[p.x, p.y, p.z]}
           rotationY={p.rotY}
           scale={p.scale}
         />
       ))}
 
       {/* parked cars */}
-      {CARS.map((c, i) => (
+      {map.cars.map((c, i) => (
         <Model
           key={`car${i}`}
           id={c.model}

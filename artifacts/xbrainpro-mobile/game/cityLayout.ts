@@ -169,51 +169,5 @@ export const STALL = { x: -10.5, z: 3.2, w: 2.6, d: 1.6, h: 2.2 };
 
 export const WORLD_BOUND = 27;
 
-function expand(a: Aabb, r: number): Aabb {
-  return { minX: a.minX - r, maxX: a.maxX + r, minZ: a.minZ - r, maxZ: a.maxZ + r };
-}
-
-const PLAYER_RADIUS = 0.55;
-
-export const COLLIDERS: Aabb[] = [
-  ...BUILDINGS.map((bd) =>
-    expand(
-      {
-        minX: bd.x - bd.w / 2,
-        maxX: bd.x + bd.w / 2,
-        minZ: bd.z - bd.d / 2,
-        maxZ: bd.z + bd.d / 2,
-      },
-      PLAYER_RADIUS,
-    ),
-  ),
-  ...CARS.map((c) =>
-    expand(
-      {
-        minX: c.x - c.halfW,
-        maxX: c.x + c.halfW,
-        minZ: c.z - c.halfD,
-        maxZ: c.z + c.halfD,
-      },
-      PLAYER_RADIUS - 0.15,
-    ),
-  ),
-  expand(
-    {
-      minX: FOUNTAIN.x - FOUNTAIN.radius,
-      maxX: FOUNTAIN.x + FOUNTAIN.radius,
-      minZ: FOUNTAIN.z - FOUNTAIN.radius,
-      maxZ: FOUNTAIN.z + FOUNTAIN.radius,
-    },
-    PLAYER_RADIUS - 0.15,
-  ),
-  expand(
-    {
-      minX: STALL.x - STALL.w / 2,
-      maxX: STALL.x + STALL.w / 2,
-      minZ: STALL.z - STALL.d / 2,
-      maxZ: STALL.z + STALL.d / 2,
-    },
-    PLAYER_RADIUS,
-  ),
-];
+// Collision volumes are derived from the active (server-driven) map in
+// worldMap.ts, so visuals and collisions always agree even for new content.

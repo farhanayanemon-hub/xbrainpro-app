@@ -31,4 +31,5 @@ export async function setSetting(key: string, value: string): Promise<void> {
 
 export const SETTING_KEYS = {
   openrouterModel: "openrouter_model",
+  worldMapVersion: "world_map_version",
 } as const;

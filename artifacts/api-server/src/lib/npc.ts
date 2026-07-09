@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+import { db, worldObjectsTable } from "@workspace/db";
 import { callOpenRouter, type ChatTurn } from "./ai";
 
 export type NpcId = "lumi" | "rex";
@@ -28,12 +30,49 @@ export const NPCS: Record<NpcId, NpcPersona> = {
   },
 };
 
+/**
+ * Look up an NPC persona. Server-driven NPCs (world objects of kind "npc")
+ * take precedence so new citizens added via the admin API can chat without
+ * an app update; the built-in registry is the fallback.
+ */
+async function resolvePersona(npcId: string): Promise<NpcPersona | null> {
+  try {
+    const rows = await db
+      .select()
+      .from(worldObjectsTable)
+      .where(eq(worldObjectsTable.kind, "npc"));
+    for (const row of rows) {
+      const data = row.data as Record<string, unknown> | null;
+      if (!data || data.id !== npcId) continue;
+      if (typeof data.systemPrompt === "string" && data.systemPrompt.trim()) {
+        return {
+          id: npcId as NpcId,
+          name: typeof data.name === "string" ? data.name : npcId,
+          systemPrompt: `${data.systemPrompt} ${SHARED_RULES}`,
+        };
+      }
+      break;
+    }
+  } catch {
+    // DB unavailable — fall back to the built-in registry
+  }
+  return NPCS[npcId as NpcId] ?? null;
+}
+
+export class UnknownNpcError extends Error {
+  constructor(npcId: string) {
+    super(`Unknown NPC: ${npcId}`);
+    this.name = "UnknownNpcError";
+  }
+}
+
 export async function npcReply(
-  npcId: NpcId,
+  npcId: string,
   history: NpcHistoryTurn[],
   message: string,
 ): Promise<string> {
-  const persona = NPCS[npcId];
+  const persona = await resolvePersona(npcId);
+  if (!persona) throw new UnknownNpcError(npcId);
 
   const historyTurns: ChatTurn[] = history.slice(-20).map((turn) => ({
     role: turn.role === "npc" ? "assistant" : "user",
