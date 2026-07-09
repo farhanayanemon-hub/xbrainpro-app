@@ -267,3 +267,39 @@ export interface ChatReply {
   assistantMessage: ChatMessage;
 }
 
+export type NpcChatTurnRole = typeof NpcChatTurnRole[keyof typeof NpcChatTurnRole];
+
+
+export const NpcChatTurnRole = {
+  user: 'user',
+  npc: 'npc',
+} as const;
+
+export interface NpcChatTurn {
+  role: NpcChatTurnRole;
+  content: string;
+}
+
+export type NpcChatInputNpcId = typeof NpcChatInputNpcId[keyof typeof NpcChatInputNpcId];
+
+
+export const NpcChatInputNpcId = {
+  lumi: 'lumi',
+  rex: 'rex',
+} as const;
+
+export interface NpcChatInput {
+  npcId: NpcChatInputNpcId;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  message: string;
+  /** Recent conversation history. The server is stateless and does not persist it. */
+  history?: NpcChatTurn[];
+}
+
+export interface NpcChatReply {
+  reply: string;
+}
+

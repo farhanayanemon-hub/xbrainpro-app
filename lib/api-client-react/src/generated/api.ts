@@ -30,6 +30,8 @@ import type {
   Error,
   HealthStatus,
   LoginInput,
+  NpcChatInput,
+  NpcChatReply,
   Path,
   Profile,
   ProfileUpdate,
@@ -2055,5 +2057,76 @@ export const useSendChatMessage = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSendChatMessageMutationOptions(options));
+    }
+
+export const getNpcChatUrl = () => {
+
+
+
+
+  return `/api/npc/chat`
+}
+
+/**
+ * Anonymous, stateless endpoint. The client sends recent history; the server does not persist it.
+ * @summary Send a message to a Neura City NPC and get an in-character reply
+ */
+export const npcChat = async (npcChatInput: NpcChatInput, options?: RequestInit): Promise<NpcChatReply> => {
+
+  return customFetch<NpcChatReply>(getNpcChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(npcChatInput)
+  }
+);}
+
+
+
+
+export const getNpcChatMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof npcChat>>, TError,{data: BodyType<NpcChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof npcChat>>, TError,{data: BodyType<NpcChatInput>}, TContext> => {
+
+const mutationKey = ['npcChat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof npcChat>>, {data: BodyType<NpcChatInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  npcChat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NpcChatMutationResult = NonNullable<Awaited<ReturnType<typeof npcChat>>>
+    export type NpcChatMutationBody = BodyType<NpcChatInput>
+    export type NpcChatMutationError = ErrorType<Error>
+
+    /**
+ * @summary Send a message to a Neura City NPC and get an in-character reply
+ */
+export const useNpcChat = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof npcChat>>, TError,{data: BodyType<NpcChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof npcChat>>,
+        TError,
+        {data: BodyType<NpcChatInput>},
+        TContext
+      > => {
+      return useMutation(getNpcChatMutationOptions(options));
     }
 

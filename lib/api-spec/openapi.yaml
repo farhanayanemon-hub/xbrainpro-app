@@ -26,6 +26,8 @@ tags:
     description: Notification reminders
   - name: chat
     description: AI coach chat
+  - name: npc
+    description: Neura City NPC chat
 paths:
   /healthz:
     get:
@@ -524,6 +526,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ChatReply"
 
+  /npc/chat:
+    post:
+      operationId: npcChat
+      tags: [npc]
+      summary: Send a message to a Neura City NPC and get an in-character reply
+      description: Anonymous, stateless endpoint. The client sends recent history; the server does not persist it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NpcChatInput"
+      responses:
+        "200":
+          description: NPC reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NpcChatReply"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: The NPC is unavailable (AI failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   schemas:
     HealthStatus:
@@ -985,3 +1019,37 @@ components:
           $ref: "#/components/schemas/ChatMessage"
         assistantMessage:
           $ref: "#/components/schemas/ChatMessage"
+
+    NpcChatTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, npc]
+        content:
+          type: string
+
+    NpcChatInput:
+      type: object
+      required: [npcId, message]
+      properties:
+        npcId:
+          type: string
+          enum: [lumi, rex]
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        history:
+          type: array
+          description: Recent conversation history. The server is stateless and does not persist it.
+          items:
+            $ref: "#/components/schemas/NpcChatTurn"
+
+    NpcChatReply:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string

@@ -1,41 +1,37 @@
 /**
- * Semantic design tokens for the mobile app.
- *
- * These mirror the sibling web artifact (xbrainpro-web/src/index.css) dark
- * theme, converted from HSL to hex, so both artifacts share one visual
- * identity. The app is always dark, so light === dark palette.
+ * Neura City design tokens — dusk / neon-lit low-poly city palette.
+ * Matches the approved canvas mockups (glassy HUD, pink→purple accents).
  */
 
 const palette = {
-  // Legacy aliases
   text: "#fafafa",
-  tint: "#884dff",
+  tint: "#ff5c8a",
 
-  background: "#06060e",
+  background: "#10142a",
   foreground: "#fafafa",
 
-  card: "#0c0c17",
+  card: "#181d38",
   cardForeground: "#fafafa",
-  cardBorder: "#181825",
+  cardBorder: "#262c4d",
 
-  primary: "#884dff",
+  primary: "#ff5c8a",
   primaryForeground: "#fafafa",
-  primaryBorder: "#661aff",
+  primaryBorder: "#e84876",
 
-  secondary: "#1f1f2e",
+  secondary: "#232946",
   secondaryForeground: "#fafafa",
 
-  muted: "#181825",
-  mutedForeground: "#9d9daf",
+  muted: "#1c2140",
+  mutedForeground: "#9aa0c3",
 
-  accent: "#884dff",
+  accent: "#8b5cf6",
   accentForeground: "#fafafa",
 
   destructive: "#ef4343",
   destructiveForeground: "#fafafa",
 
-  border: "#1f1f2e",
-  input: "#1f1f2e",
+  border: "#262c4d",
+  input: "#232946",
 };
 
 const colors = {

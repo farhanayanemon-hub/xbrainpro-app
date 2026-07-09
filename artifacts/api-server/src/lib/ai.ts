@@ -38,7 +38,7 @@ function apiKey(): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callOpenRouter(
+export async function callOpenRouter(
   messages: ChatTurn[],
   opts: { json?: boolean; temperature?: number; maxTokens?: number } = {},
 ): Promise<string> {

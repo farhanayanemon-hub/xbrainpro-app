@@ -8,6 +8,7 @@ import tasksRouter from "./tasks";
 import dashboardRouter from "./dashboard";
 import remindersRouter from "./reminders";
 import chatRouter from "./chat";
+import npcRouter from "./npc";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -21,6 +22,7 @@ router.use(tasksRouter);
 router.use(dashboardRouter);
 router.use(remindersRouter);
 router.use(chatRouter);
+router.use(npcRouter);
 router.use(adminRouter);
 
 export default router;

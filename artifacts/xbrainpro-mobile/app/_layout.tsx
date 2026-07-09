@@ -9,9 +9,8 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setBaseUrl } from "@workspace/api-client-react";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
@@ -21,59 +20,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 // Expo bundles run outside the web proxy and need an absolute API base URL.
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient();
-
-// Redirects to the correct route group based on auth + onboarding state.
-function useProtectedRoute() {
-  const { user, isBootstrapping } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isBootstrapping) return;
-
-    const group = segments[0];
-    const inAuth = group === "(auth)";
-    const inOnboarding = group === "(onboarding)";
-    const needsOnboarding = !!user && (!user.onboarded || !user.hasProgram);
-
-    if (!user && !inAuth) {
-      router.replace("/(auth)/login");
-    } else if (user && needsOnboarding && !inOnboarding) {
-      router.replace("/(onboarding)");
-    } else if (user && !needsOnboarding && (inAuth || inOnboarding)) {
-      router.replace("/(tabs)");
-    }
-  }, [user, isBootstrapping, segments, router]);
-}
-
-function RootLayoutNav() {
-  useProtectedRoute();
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.light.background },
-      }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="reminders" />
-      <Stack.Screen name="edit-assessment" />
-      <Stack.Screen name="new-program" />
-    </Stack>
-  );
-}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -96,16 +48,19 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </AuthProvider>
-        </QueryClientProvider>
+        <GestureHandlerRootView>
+          <KeyboardProvider>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.dark.background },
+              }}
+            >
+              <Stack.Screen name="index" />
+            </Stack>
+          </KeyboardProvider>
+        </GestureHandlerRootView>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

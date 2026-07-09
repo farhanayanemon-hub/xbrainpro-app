@@ -1,6 +1,6 @@
 kind = "mobile"
 previewPath = "/xbrainpro-mobile/"
-title = "XBrainPro"
+title = "Neura City"
 version = "1.0.0"
 id = "artifacts/xbrainpro-mobile"
 router = "expo-domain"

@@ -637,3 +637,25 @@ export const SendChatMessageResponse = zod.object({
 })
 
 
+/**
+ * Anonymous, stateless endpoint. The client sends recent history; the server does not persist it.
+ * @summary Send a message to a Neura City NPC and get an in-character reply
+ */
+export const npcChatBodyMessageMax = 1000;
+
+
+
+export const NpcChatBody = zod.object({
+  "npcId": zod.enum(['lumi', 'rex']),
+  "message": zod.string().min(1).max(npcChatBodyMessageMax),
+  "history": zod.array(zod.object({
+  "role": zod.enum(['user', 'npc']),
+  "content": zod.string()
+})).optional().describe('Recent conversation history. The server is stateless and does not persist it.')
+})
+
+export const NpcChatResponse = zod.object({
+  "reply": zod.string()
+})
+
+

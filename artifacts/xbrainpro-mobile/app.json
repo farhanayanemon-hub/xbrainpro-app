@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "XBrainPro",
-    "slug": "xbrainpro-mobile",
+    "name": "Neura City",
+    "slug": "neura-city",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "xbrainpro-mobile",
+    "scheme": "neura-city",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#06060e"
+      "backgroundColor": "#10142a"
     },
     "ios": {
       "supportsTablet": false
@@ -28,14 +28,7 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "color": "#7c5cff"
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
