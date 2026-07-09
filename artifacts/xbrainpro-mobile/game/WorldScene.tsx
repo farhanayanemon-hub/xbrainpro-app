@@ -9,9 +9,11 @@ import Player from "@/game/Player";
 const SUN_POSITION: [number, number, number] = [35, 42, -20];
 
 export default function WorldScene({
+  avatarId,
   onNearNpc,
   onLoaded,
 }: {
+  avatarId: string;
   onNearNpc: (npcId: string | null) => void;
   /** Fires once all suspended assets (models, textures) are ready. */
   onLoaded?: () => void;
@@ -52,7 +54,7 @@ export default function WorldScene({
       {NPCS.map((n) => (
         <Npc key={n.id} npc={n} />
       ))}
-      <Player onNearNpc={onNearNpc} />
+      <Player avatarId={avatarId} onNearNpc={onNearNpc} />
     </>
   );
 }

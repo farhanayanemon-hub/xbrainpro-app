@@ -3,7 +3,13 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import colors, { fonts } from "@/constants/colors";
 
-export default function PauseMenu({ onResume }: { onResume: () => void }) {
+export default function PauseMenu({
+  onResume,
+  onChangeAvatar,
+}: {
+  onResume: () => void;
+  onChangeAvatar: () => void;
+}) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onResume}>
       <View style={styles.backdrop}>
@@ -20,6 +26,9 @@ export default function PauseMenu({ onResume }: { onResume: () => void }) {
 
           <Pressable style={styles.resumeBtn} onPress={onResume}>
             <Text style={styles.resumeText}>Resume</Text>
+          </Pressable>
+          <Pressable style={styles.avatarBtn} onPress={onChangeAvatar}>
+            <Text style={styles.avatarText}>Change avatar</Text>
           </Pressable>
           <Text style={styles.version}>Phase 1 • Plaza District</Text>
         </View>
@@ -76,6 +85,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   resumeText: { fontFamily: fonts.headingSemi, fontSize: 16, color: "#fff" },
+  avatarBtn: {
+    alignSelf: "stretch",
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  avatarText: {
+    fontFamily: fonts.headingSemi,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.9)",
+  },
   version: {
     fontFamily: fonts.medium,
     fontSize: 11,

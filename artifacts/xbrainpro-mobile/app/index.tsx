@@ -1,13 +1,25 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import AvatarPicker from "@/components/AvatarPicker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Hud from "@/components/Hud";
 import Joystick from "@/components/Joystick";
 import NpcChat from "@/components/NpcChat";
 import PauseMenu from "@/components/PauseMenu";
 import colors, { fonts } from "@/constants/colors";
+import {
+  DEFAULT_AVATAR_ID,
+  loadAvatarId,
+  saveAvatarId,
+} from "@/game/avatar";
 import GameCanvas from "@/game/GameCanvas";
 import { NPCS } from "@/game/npcs";
 import { game, resetInput } from "@/game/store";
@@ -20,6 +32,21 @@ export default function NeuraCity() {
   const [nearNpcId, setNearNpcId] = useState<string | null>(null);
   const [chatNpcId, setChatNpcId] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
+  const [pickingAvatar, setPickingAvatar] = useState(false);
+
+  const userPickedAvatar = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAvatarId().then((id) => {
+      // Don't clobber a choice the user made before hydration finished.
+      if (!cancelled && !userPickedAvatar.current) setAvatarId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (ready) {
@@ -29,9 +56,15 @@ export default function NeuraCity() {
   }, [ready]);
 
   useEffect(() => {
-    game.frozen = paused || chatNpcId !== null;
+    game.frozen = paused || pickingAvatar || chatNpcId !== null;
     if (game.frozen) resetInput();
-  }, [paused, chatNpcId]);
+  }, [paused, pickingAvatar, chatNpcId]);
+
+  const onSelectAvatar = useCallback((id: string) => {
+    userPickedAvatar.current = true;
+    setAvatarId(id);
+    void saveAvatarId(id);
+  }, []);
 
   const onNearNpc = useCallback((id: string | null) => setNearNpcId(id), []);
 
@@ -57,6 +90,7 @@ export default function NeuraCity() {
         >
           <React.Suspense fallback={null}>
             <WorldScene
+              avatarId={avatarId}
               onNearNpc={onNearNpc}
               onLoaded={() => setReady(true)}
             />
@@ -76,7 +110,22 @@ export default function NeuraCity() {
       />
 
       {chatNpc && <NpcChat npc={chatNpc} onClose={() => setChatNpcId(null)} />}
-      {paused && <PauseMenu onResume={() => setPaused(false)} />}
+      {paused && (
+        <PauseMenu
+          onResume={() => setPaused(false)}
+          onChangeAvatar={() => {
+            setPaused(false);
+            setPickingAvatar(true);
+          }}
+        />
+      )}
+      {pickingAvatar && (
+        <AvatarPicker
+          selectedId={avatarId}
+          onSelect={onSelectAvatar}
+          onClose={() => setPickingAvatar(false)}
+        />
+      )}
 
       {/* loading screen */}
       {showLoader && (

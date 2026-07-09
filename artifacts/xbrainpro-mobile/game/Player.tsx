@@ -1,9 +1,10 @@
 import { useFrame } from "@react-three/fiber";
-import React, { useRef } from "react";
+import React, { Suspense, useRef } from "react";
 import type { Group } from "three";
 import { Vector3 } from "three";
 
-import { COLLIDERS, WORLD_BOUND, type Aabb } from "@/game/cityLayout";
+import Avatar from "@/game/Avatar";
+import { COLLIDERS, WORLD_BOUND } from "@/game/cityLayout";
 import { NPCS, TALK_DISTANCE } from "@/game/npcs";
 import { game } from "@/game/store";
 
@@ -28,16 +29,66 @@ function resolveCollisions(x: number, z: number): [number, number] {
   return [nx, nz];
 }
 
+/** Simple blocky stand-in shown while the avatar GLB loads (or fails). */
+function PlaceholderBody() {
+  return (
+    <>
+      <mesh castShadow position={[-0.14, 0.35, 0]}>
+        <boxGeometry args={[0.2, 0.7, 0.24]} />
+        <meshStandardMaterial color="#2d3561" />
+      </mesh>
+      <mesh castShadow position={[0.14, 0.35, 0]}>
+        <boxGeometry args={[0.2, 0.7, 0.24]} />
+        <meshStandardMaterial color="#2d3561" />
+      </mesh>
+      <mesh castShadow position={[0, 1.05, 0]}>
+        <boxGeometry args={[0.62, 0.75, 0.34]} />
+        <meshStandardMaterial color="#ff5c8a" />
+      </mesh>
+      <mesh castShadow position={[0, 1.72, 0]}>
+        <boxGeometry args={[0.44, 0.44, 0.4]} />
+        <meshStandardMaterial color="#f2c9a1" />
+      </mesh>
+    </>
+  );
+}
+
+/**
+ * Error boundary that lives inside the 3D scene graph, so a failed avatar
+ * load falls back to the placeholder body instead of crashing the canvas.
+ */
+class AvatarBoundary extends React.Component<
+  { children: React.ReactNode; resetKey: string },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidUpdate(prev: { resetKey: string }) {
+    if (prev.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
+  render() {
+    if (this.state.failed) return <PlaceholderBody />;
+    return this.props.children;
+  }
+}
+
 export default function Player({
+  avatarId,
   onNearNpc,
 }: {
+  avatarId: string;
   onNearNpc: (npcId: string | null) => void;
 }) {
   const group = useRef<Group>(null);
-  const bodyGroup = useRef<Group>(null);
   const camTarget = useRef(new Vector3());
   const lastNear = useRef<string | null>(null);
-  const walkPhase = useRef(0);
 
   useFrame((state, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
@@ -57,7 +108,6 @@ export default function Player({
       game.player.x = nx;
       game.player.z = nz;
       game.player.heading = Math.atan2(dirX, dirZ);
-      walkPhase.current += delta * 10 * mag;
     }
 
     if (group.current) {
@@ -68,12 +118,6 @@ export default function Player({
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
       g.rotation.y += diff * Math.min(1, delta * 12);
-    }
-    if (bodyGroup.current) {
-      // walk bob
-      bodyGroup.current.position.y = moving
-        ? Math.abs(Math.sin(walkPhase.current)) * 0.08
-        : 0;
     }
 
     // follow camera
@@ -101,41 +145,11 @@ export default function Player({
 
   return (
     <group ref={group} position={[game.player.x, 0, game.player.z]}>
-      <group ref={bodyGroup}>
-        {/* legs */}
-        <mesh castShadow position={[-0.14, 0.35, 0]}>
-          <boxGeometry args={[0.2, 0.7, 0.24]} />
-          <meshStandardMaterial color="#2d3561" />
-        </mesh>
-        <mesh castShadow position={[0.14, 0.35, 0]}>
-          <boxGeometry args={[0.2, 0.7, 0.24]} />
-          <meshStandardMaterial color="#2d3561" />
-        </mesh>
-        {/* torso */}
-        <mesh castShadow position={[0, 1.05, 0]}>
-          <boxGeometry args={[0.62, 0.75, 0.34]} />
-          <meshStandardMaterial color="#ff5c8a" />
-        </mesh>
-        {/* arms */}
-        <mesh castShadow position={[-0.42, 1.02, 0]}>
-          <boxGeometry args={[0.16, 0.62, 0.2]} />
-          <meshStandardMaterial color="#e84876" />
-        </mesh>
-        <mesh castShadow position={[0.42, 1.02, 0]}>
-          <boxGeometry args={[0.16, 0.62, 0.2]} />
-          <meshStandardMaterial color="#e84876" />
-        </mesh>
-        {/* head */}
-        <mesh castShadow position={[0, 1.72, 0]}>
-          <boxGeometry args={[0.44, 0.44, 0.4]} />
-          <meshStandardMaterial color="#f2c9a1" />
-        </mesh>
-        {/* hair cap */}
-        <mesh castShadow position={[0, 1.93, -0.03]}>
-          <boxGeometry args={[0.48, 0.16, 0.44]} />
-          <meshStandardMaterial color="#31284b" />
-        </mesh>
-      </group>
+      <AvatarBoundary resetKey={avatarId}>
+        <Suspense fallback={<PlaceholderBody />}>
+          <Avatar key={avatarId} avatarId={avatarId} />
+        </Suspense>
+      </AvatarBoundary>
     </group>
   );
 }
