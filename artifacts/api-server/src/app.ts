@@ -50,9 +50,23 @@ if (process.env["NODE_ENV"] === "production") {
     ? path.resolve(process.env["PLAY_STATIC_DIR"])
     : path.resolve(here, "../../xbrainpro-mobile/web-dist");
   if (fs.existsSync(playDir)) {
-    app.use("/play", express.static(playDir));
+    // Hashed bundles/assets can be cached long-term; the HTML shell must not be.
+    app.use(
+      "/play",
+      express.static(playDir, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html")) {
+            res.setHeader("Cache-Control", "no-cache");
+          } else {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+        },
+      }),
+    );
     app.use("/play", (req, res, next) => {
       if (req.method !== "GET") return next();
+      res.setHeader("Cache-Control", "no-cache");
       res.sendFile(path.join(playDir, "index.html"));
     });
     logger.info({ playDir }, "Serving Neura City web build at /play");
