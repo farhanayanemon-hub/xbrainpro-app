@@ -6,3 +6,15 @@ id = "5ukTdeuxW_wiCo65yu9o_"
 uri = "file://artifacts/xbrainpro-mobile/assets/images/icon.png"
 type = "image"
 title = "generated_image"
+
+[[generated]]
+id = "tdMEF44aXmME3wFpNhE0B"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-city-street.png"
+type = "image"
+title = "street view neura city"
+
+[[generated]]
+id = "hC7c7pkPreNJh0QDt10hy"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-city-npc.png"
+type = "image"
+title = "npc view neura city"
