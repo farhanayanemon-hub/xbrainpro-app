@@ -23,6 +23,10 @@ import {
 import GameCanvas from "@/game/GameCanvas";
 import { game, resetInput } from "@/game/store";
 import {
+  downloadResources,
+  type ResourceProgress,
+} from "@/game/resources";
+import {
   DEFAULT_MAP,
   loadWorldMap,
   setActiveWorldMap,
@@ -40,8 +44,26 @@ export default function NeuraCity() {
   const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
   const [pickingAvatar, setPickingAvatar] = useState(false);
   const [worldMap, setWorldMap] = useState<ParsedWorldMap>(DEFAULT_MAP);
+  const [resProgress, setResProgress] = useState<ResourceProgress>({
+    done: 0,
+    total: 1,
+  });
+  const [resourcesDone, setResourcesDone] = useState(false);
 
   const userPickedAvatar = useRef(false);
+
+  // Game-style resource download step with real progress.
+  useEffect(() => {
+    let cancelled = false;
+    downloadResources((p) => {
+      if (!cancelled) setResProgress(p);
+    }).finally(() => {
+      if (!cancelled) setResourcesDone(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,11 +174,34 @@ export default function NeuraCity() {
         <View style={styles.loader}>
           <Text style={styles.loaderSpark}>✦</Text>
           <Text style={styles.loaderTitle}>NEURA CITY</Text>
-          <Text style={styles.loaderSub}>Entering the Plaza district…</Text>
-          <ActivityIndicator
-            color={colors.dark.primary}
-            style={{ marginTop: 24 }}
-          />
+          <Text style={styles.loaderSub}>
+            {resourcesDone
+              ? "Entering the Plaza district…"
+              : "Downloading city resources…"}
+          </Text>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.round(
+                    (resProgress.done / Math.max(resProgress.total, 1)) * 100,
+                  )}%` as `${number}%`,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.progressLabel}>
+            {resourcesDone
+              ? "Ready"
+              : `${resProgress.done} / ${resProgress.total}`}
+          </Text>
+          {resourcesDone && (
+            <ActivityIndicator
+              color={colors.dark.primary}
+              style={{ marginTop: 16 }}
+            />
+          )}
         </View>
       )}
     </View>
@@ -200,6 +245,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.dark.mutedForeground,
     marginTop: 8,
+  },
+  progressTrack: {
+    width: 220,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    marginTop: 24,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: colors.dark.primary,
+  },
+  progressLabel: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.dark.mutedForeground,
+    marginTop: 10,
   },
   glFallback: {
     flex: 1,
