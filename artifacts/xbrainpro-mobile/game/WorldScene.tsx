@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { HOUSES } from "@/game/cityLayout";
+import type { HouseDef } from "@/game/cityLayout";
 import CityScene from "@/game/CityScene";
 import { Sky } from "@/game/drei";
 import InteriorScene from "@/game/InteriorScene";
@@ -12,9 +12,8 @@ import type { Interactable, ParsedWorldMap } from "@/game/worldMap";
 const SUN_POSITION: [number, number, number] = [35, 42, -20];
 
 /** A glowing marker floating above the player's own house. */
-function HomeBeacon({ plot }: { plot: number }) {
-  const h = HOUSES[plot];
-  if (!h) return null;
+function HomeBeacon({ house }: { house: HouseDef }) {
+  const h = house;
   return (
     <group position={[h.x, h.h + 2.6, h.z]}>
       <mesh>
@@ -88,7 +87,11 @@ export default function WorldScene({
       />
       <CityScene map={map} homePlot={homePlot} />
       <TrafficCars />
-      {homePlot !== null && <HomeBeacon plot={homePlot} />}
+      {homePlot !== null &&
+        (() => {
+          const h = map.houses.find((hh) => hh.plot === homePlot);
+          return h ? <HomeBeacon house={h} /> : null;
+        })()}
       {map.npcs.map((n) => (
         <Npc key={n.id} npc={n} />
       ))}

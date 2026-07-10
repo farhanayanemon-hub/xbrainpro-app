@@ -74,6 +74,20 @@ export default function NeuraCity() {
 
   const userPickedAvatar = useRef(false);
   const sleepFade = useRef(new Animated.Value(0)).current;
+  // Mirrors `inside` for use inside effect closures that shouldn't clobber the
+  // interior's runtime world state if an async map load resolves late.
+  const insideRef = useRef(false);
+
+  // My house comes from the live server map (by plot); the bundled HOUSES is
+  // only a fallback so prompts/teleports never desync from rendered houses.
+  const myHouse = useMemo(() => {
+    if (homePlot === null) return null;
+    return (
+      worldMap.houses.find((h) => h.plot === homePlot) ??
+      HOUSES[homePlot] ??
+      null
+    );
+  }, [worldMap, homePlot]);
 
   // Route guard: no/invalid session → send back to the lobby/login gate.
   // Prevents deep-linking straight into the game without a valid account.
@@ -130,8 +144,10 @@ export default function NeuraCity() {
     let cancelled = false;
     loadWorldMap().then((map) => {
       if (cancelled) return;
-      setActiveWorldMap(map);
       setWorldMap(map);
+      // Don't stomp on the interior's runtime state if the player already went
+      // inside before this resolved; leaveHome() will activate the fresh map.
+      if (!insideRef.current) setActiveWorldMap(map);
     });
     return () => {
       cancelled = true;
@@ -157,11 +173,11 @@ export default function NeuraCity() {
   // home. (All houses are solid; you can't walk into strangers' houses.)
   useEffect(() => {
     if (inside) return;
-    if (homePlot === null || !HOUSES[homePlot]) {
+    if (!myHouse) {
       setInteractables([]);
       return;
     }
-    const door = houseDoor(HOUSES[homePlot]);
+    const door = houseDoor(myHouse);
     setInteractables([
       {
         id: "home",
@@ -172,7 +188,7 @@ export default function NeuraCity() {
         label: "Enter home",
       },
     ]);
-  }, [inside, homePlot]);
+  }, [inside, myHouse]);
 
   useEffect(() => {
     if (ready) {
@@ -204,21 +220,23 @@ export default function NeuraCity() {
     game.player.z = INTERIOR_SPAWN.z;
     game.player.heading = Math.PI; // face the bed (−Z)
     game.cam.yaw = 0; // camera behind the player, looking into the room
+    insideRef.current = true;
     setNearInteract(null);
     setInside(true);
   }, []);
 
   const leaveHome = useCallback(() => {
     setActiveWorldMap(worldMap);
-    if (homePlot !== null && HOUSES[homePlot]) {
-      const door = houseDoor(HOUSES[homePlot]);
+    if (myHouse) {
+      const door = houseDoor(myHouse);
       game.player.x = door.x;
       game.player.z = door.z;
-      game.player.heading = HOUSES[homePlot].rotY; // step out facing away
+      game.player.heading = myHouse.rotY; // step out facing away
     }
+    insideRef.current = false;
     setNearInteract(null);
     setInside(false);
-  }, [worldMap, homePlot]);
+  }, [worldMap, myHouse]);
 
   const sleep = useCallback(() => {
     if (sleeping) return;
