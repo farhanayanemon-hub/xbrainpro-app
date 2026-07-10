@@ -23,6 +23,7 @@ import Hud from "@/components/Hud";
 import Joystick from "@/components/Joystick";
 import NpcChat from "@/components/NpcChat";
 import PauseMenu from "@/components/PauseMenu";
+import PlayerLabels from "@/components/PlayerLabels";
 import colors, { fonts } from "@/constants/colors";
 import {
   DEFAULT_AVATAR_ID,
@@ -48,8 +49,13 @@ import {
   type ParsedWorldMap,
 } from "@/game/worldMap";
 import WorldScene from "@/game/WorldScene";
+import { connect, disconnect, setVisible, subscribeRoster } from "@/game/net";
 import { loadToken } from "@/lib/session";
-import { getCurrentUser, getPlayerHome } from "@workspace/api-client-react";
+import {
+  getCurrentUser,
+  getPlayerHome,
+  getPlayerProfile,
+} from "@workspace/api-client-react";
 
 export default function NeuraCity() {
   const router = useRouter();
@@ -66,6 +72,7 @@ export default function NeuraCity() {
   const [inside, setInside] = useState(false);
   const [nearInteract, setNearInteract] = useState<Interactable | null>(null);
   const [sleeping, setSleeping] = useState(false);
+  const [remoteIds, setRemoteIds] = useState<string[]>([]);
   const [resProgress, setResProgress] = useState<ResourceProgress>({
     done: 0,
     total: 1,
@@ -73,6 +80,10 @@ export default function NeuraCity() {
   const [resourcesDone, setResourcesDone] = useState(false);
 
   const userPickedAvatar = useRef(false);
+  // Mirrors avatarId so the realtime self-getter (a stable closure) always
+  // reads the latest choice without reconnecting on every avatar change.
+  const avatarIdRef = useRef(avatarId);
+  avatarIdRef.current = avatarId;
   const sleepFade = useRef(new Animated.Value(0)).current;
   // Mirrors `inside` for use inside effect closures that shouldn't clobber the
   // interior's runtime world state if an async map load resolves late.
@@ -168,6 +179,46 @@ export default function NeuraCity() {
       cancelled = true;
     };
   }, []);
+
+  // Realtime co-presence: connect to the city WebSocket once we have a token
+  // and the player's display name, then keep the roster in React state so
+  // other players' avatars mount/unmount as they join and leave.
+  useEffect(() => {
+    let cancelled = false;
+    let unsub: (() => void) | null = null;
+    void (async () => {
+      const token = await loadToken();
+      if (cancelled || !token) return;
+      let name = "Citizen";
+      try {
+        const prof = await getPlayerProfile();
+        if (prof?.displayName) name = prof.displayName;
+      } catch {
+        // Non-fatal: server falls back to the stored profile name anyway.
+      }
+      if (cancelled) return;
+      connect(token, () => ({
+        avatarId: avatarIdRef.current,
+        name,
+        x: game.player.x,
+        z: game.player.z,
+        h: game.player.heading,
+      }));
+      unsub = subscribeRoster((ids) => {
+        if (!cancelled) setRemoteIds(ids);
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+      disconnect();
+    };
+  }, []);
+
+  // Hide the local player from others while inside a private home interior.
+  useEffect(() => {
+    setVisible(!inside);
+  }, [inside]);
 
   // When we're outside and know our plot, the only enterable door is our own
   // home. (All houses are solid; you can't walk into strangers' houses.)
@@ -293,6 +344,7 @@ export default function NeuraCity() {
               avatarId={avatarId}
               inside={inside}
               homePlot={homePlot}
+              remoteIds={inside ? [] : remoteIds}
               onNearNpc={onNearNpc}
               onNearInteract={onNearInteract}
               onLoaded={() => setReady(true)}
@@ -300,6 +352,9 @@ export default function NeuraCity() {
           </React.Suspense>
         </GameCanvas>
       </ErrorBoundary>
+
+      {/* Other players' display names, projected above their heads. */}
+      {!inside && <PlayerLabels />}
 
       {/* right-half drag surface rotates the camera */}
       <CameraControl />

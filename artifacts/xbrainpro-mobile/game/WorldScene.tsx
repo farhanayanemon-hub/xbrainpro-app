@@ -6,6 +6,7 @@ import { Sky } from "@/game/drei";
 import InteriorScene from "@/game/InteriorScene";
 import Npc from "@/game/Npc";
 import Player from "@/game/Player";
+import RemotePlayer from "@/game/RemotePlayer";
 import TrafficCars from "@/game/TrafficCars";
 import type { Interactable, ParsedWorldMap } from "@/game/worldMap";
 
@@ -34,6 +35,7 @@ export default function WorldScene({
   avatarId,
   inside,
   homePlot,
+  remoteIds,
   onNearNpc,
   onNearInteract,
   onLoaded,
@@ -42,6 +44,8 @@ export default function WorldScene({
   avatarId: string;
   inside: boolean;
   homePlot: number | null;
+  /** Ids of other online players to render (only shown while outside). */
+  remoteIds: string[];
   onNearNpc: (npcId: string | null) => void;
   onNearInteract: (it: Interactable | null) => void;
   /** Fires once all suspended assets (models, textures) are ready. */
@@ -94,6 +98,9 @@ export default function WorldScene({
         })()}
       {map.npcs.map((n) => (
         <Npc key={n.id} npc={n} />
+      ))}
+      {remoteIds.map((id) => (
+        <RemotePlayer key={id} id={id} />
       ))}
       <Player
         avatarId={avatarId}

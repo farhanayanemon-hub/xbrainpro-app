@@ -22,7 +22,18 @@ type ClipName = "Idle" | "Walking_A" | "Running_A";
  * clones it (skeleton-aware), normalizes its height, and crossfades between
  * idle / walk / run clips based on the joystick input magnitude.
  */
-export default function Avatar({ avatarId }: { avatarId: string }) {
+export default function Avatar({
+  avatarId,
+  getMotion,
+}: {
+  avatarId: string;
+  /**
+   * Optional 0..1 movement magnitude source. Defaults to the local joystick
+   * input; remote players pass their own interpolated speed so their walk/run
+   * animation matches how they're actually moving.
+   */
+  getMotion?: () => number;
+}) {
   const def = AVATAR_MAP[avatarId] ?? AVATAR_MAP[DEFAULT_AVATAR_ID];
   const gltf = useGLTF(assetUri(def.src)) as unknown as {
     scene: Object3D;
@@ -62,8 +73,13 @@ export default function Avatar({ avatarId }: { avatarId: string }) {
   }, [actions]);
 
   useFrame(() => {
-    const { x, y } = game.frozen ? { x: 0, y: 0 } : game.input;
-    const mag = Math.min(Math.hypot(x, y), 1);
+    let mag: number;
+    if (getMotion) {
+      mag = Math.min(Math.max(getMotion(), 0), 1);
+    } else {
+      const { x, y } = game.frozen ? { x: 0, y: 0 } : game.input;
+      mag = Math.min(Math.hypot(x, y), 1);
+    }
     const next: ClipName =
       mag > RUN_THRESHOLD
         ? "Running_A"

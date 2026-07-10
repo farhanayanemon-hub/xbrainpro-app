@@ -66,8 +66,9 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
-export async function resolveUser(req: Request): Promise<User | null> {
-  const token = extractToken(req);
+export async function resolveUserByToken(
+  token: string | null | undefined,
+): Promise<User | null> {
   if (!token) return null;
 
   const [session] = await db
@@ -87,6 +88,10 @@ export async function resolveUser(req: Request): Promise<User | null> {
     .where(eq(usersTable.id, session.userId));
 
   return user ?? null;
+}
+
+export async function resolveUser(req: Request): Promise<User | null> {
+  return resolveUserByToken(extractToken(req));
 }
 
 export async function requireAuth(
