@@ -289,6 +289,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /player/home:
+    get:
+      operationId: getPlayerHome
+      tags: [players]
+      summary: Get the authenticated player's assigned house plot
+      description: Returns the residential plot index assigned to the account. The client resolves the plot to a world position from the shared house objects.
+      responses:
+        "200":
+          description: The player's home plot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerHome"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /players/{userId}:
     get:
       operationId: getPublicPlayerProfile
@@ -834,6 +854,14 @@ components:
           type: ["string", "null"]
           description: Relative URL serving the photo bytes, null when no photo
 
+    PlayerHome:
+      type: object
+      required: [plot]
+      properties:
+        plot:
+          type: integer
+          description: Index of the assigned residential house plot in the world map.
+
     PlayerProfileInput:
       type: object
       required: [displayName, gender]
@@ -1275,7 +1303,7 @@ components:
           type: integer
         kind:
           type: string
-          enum: [building, tree, lamp, prop, roofProp, car, fountain, stall, npc]
+          enum: [building, tree, lamp, prop, roofProp, car, fountain, stall, npc, house]
         data:
           type: object
           additionalProperties: true

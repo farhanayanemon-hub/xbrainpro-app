@@ -19,4 +19,5 @@ export const WorldObjectKind = {
   fountain: 'fountain',
   stall: 'stall',
   npc: 'npc',
+  house: 'house',
 } as const;

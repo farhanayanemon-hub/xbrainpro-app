@@ -5,7 +5,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -28,15 +35,21 @@ import {
   downloadResources,
   type ResourceProgress,
 } from "@/game/resources";
+import { HOUSES } from "@/game/cityLayout";
 import {
   DEFAULT_MAP,
+  houseDoor,
   loadWorldMap,
+  setActiveInterior,
   setActiveWorldMap,
+  setInteractables,
+  INTERIOR_SPAWN,
+  type Interactable,
   type ParsedWorldMap,
 } from "@/game/worldMap";
 import WorldScene from "@/game/WorldScene";
 import { loadToken } from "@/lib/session";
-import { getCurrentUser } from "@workspace/api-client-react";
+import { getCurrentUser, getPlayerHome } from "@workspace/api-client-react";
 
 export default function NeuraCity() {
   const router = useRouter();
@@ -49,6 +62,10 @@ export default function NeuraCity() {
   const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
   const [pickingAvatar, setPickingAvatar] = useState(false);
   const [worldMap, setWorldMap] = useState<ParsedWorldMap>(DEFAULT_MAP);
+  const [homePlot, setHomePlot] = useState<number | null>(null);
+  const [inside, setInside] = useState(false);
+  const [nearInteract, setNearInteract] = useState<Interactable | null>(null);
+  const [sleeping, setSleeping] = useState(false);
   const [resProgress, setResProgress] = useState<ResourceProgress>({
     done: 0,
     total: 1,
@@ -56,6 +73,7 @@ export default function NeuraCity() {
   const [resourcesDone, setResourcesDone] = useState(false);
 
   const userPickedAvatar = useRef(false);
+  const sleepFade = useRef(new Animated.Value(0)).current;
 
   // Route guard: no/invalid session → send back to the lobby/login gate.
   // Prevents deep-linking straight into the game without a valid account.
@@ -120,6 +138,42 @@ export default function NeuraCity() {
     };
   }, []);
 
+  // Which house is mine? Server assigns a plot deterministically per user.
+  useEffect(() => {
+    let cancelled = false;
+    getPlayerHome()
+      .then((res) => {
+        if (!cancelled && typeof res?.plot === "number") setHomePlot(res.plot);
+      })
+      .catch(() => {
+        // Non-fatal: without a home the city still works, just no door prompt.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // When we're outside and know our plot, the only enterable door is our own
+  // home. (All houses are solid; you can't walk into strangers' houses.)
+  useEffect(() => {
+    if (inside) return;
+    if (homePlot === null || !HOUSES[homePlot]) {
+      setInteractables([]);
+      return;
+    }
+    const door = houseDoor(HOUSES[homePlot]);
+    setInteractables([
+      {
+        id: "home",
+        kind: "house",
+        x: door.x,
+        z: door.z,
+        radius: 2,
+        label: "Enter home",
+      },
+    ]);
+  }, [inside, homePlot]);
+
   useEffect(() => {
     if (ready) {
       const t = setTimeout(() => setShowLoader(false), 150);
@@ -128,9 +182,9 @@ export default function NeuraCity() {
   }, [ready]);
 
   useEffect(() => {
-    game.frozen = paused || pickingAvatar || chatNpcId !== null;
+    game.frozen = paused || pickingAvatar || chatNpcId !== null || sleeping;
     if (game.frozen) resetInput();
-  }, [paused, pickingAvatar, chatNpcId]);
+  }, [paused, pickingAvatar, chatNpcId, sleeping]);
 
   const onSelectAvatar = useCallback((id: string) => {
     userPickedAvatar.current = true;
@@ -139,6 +193,58 @@ export default function NeuraCity() {
   }, []);
 
   const onNearNpc = useCallback((id: string | null) => setNearNpcId(id), []);
+  const onNearInteract = useCallback(
+    (it: Interactable | null) => setNearInteract(it),
+    [],
+  );
+
+  const enterHome = useCallback(() => {
+    setActiveInterior();
+    game.player.x = INTERIOR_SPAWN.x;
+    game.player.z = INTERIOR_SPAWN.z;
+    game.player.heading = Math.PI; // face the bed (−Z)
+    game.cam.yaw = 0; // camera behind the player, looking into the room
+    setNearInteract(null);
+    setInside(true);
+  }, []);
+
+  const leaveHome = useCallback(() => {
+    setActiveWorldMap(worldMap);
+    if (homePlot !== null && HOUSES[homePlot]) {
+      const door = houseDoor(HOUSES[homePlot]);
+      game.player.x = door.x;
+      game.player.z = door.z;
+      game.player.heading = HOUSES[homePlot].rotY; // step out facing away
+    }
+    setNearInteract(null);
+    setInside(false);
+  }, [worldMap, homePlot]);
+
+  const sleep = useCallback(() => {
+    if (sleeping) return;
+    setSleeping(true);
+    // Fade to black, then back — a simple "rest" transition.
+    Animated.sequence([
+      Animated.timing(sleepFade, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.delay(900),
+      Animated.timing(sleepFade, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setSleeping(false));
+  }, [sleeping, sleepFade]);
+
+  const onAction = useCallback(() => {
+    if (!nearInteract) return;
+    if (nearInteract.kind === "house") enterHome();
+    else if (nearInteract.kind === "exit") leaveHome();
+    else if (nearInteract.kind === "bed") sleep();
+  }, [nearInteract, enterHome, leaveHome, sleep]);
 
   const nearNpc = useMemo(
     () => worldMap.npcs.find((n) => n.id === nearNpcId) ?? null,
@@ -167,7 +273,10 @@ export default function NeuraCity() {
             <WorldScene
               map={worldMap}
               avatarId={avatarId}
+              inside={inside}
+              homePlot={homePlot}
               onNearNpc={onNearNpc}
+              onNearInteract={onNearInteract}
               onLoaded={() => setReady(true)}
             />
           </React.Suspense>
@@ -187,6 +296,34 @@ export default function NeuraCity() {
         onTalk={() => nearNpc && setChatNpcId(nearNpc.id)}
         onPause={() => setPaused(true)}
       />
+
+      {/* Contextual action button (enter home / sleep / leave). Sits left of
+          the TALK button so both can show at once without overlapping. */}
+      {nearInteract && !nearNpc && (
+        <Pressable
+          style={[styles.actionBtn, { bottom: 60 + insets.bottom }]}
+          onPress={onAction}
+        >
+          <Text style={styles.actionIcon}>
+            {nearInteract.kind === "bed"
+              ? "🛏️"
+              : nearInteract.kind === "exit"
+                ? "🚪"
+                : "🏠"}
+          </Text>
+          <Text style={styles.actionText}>{nearInteract.label}</Text>
+        </Pressable>
+      )}
+
+      {/* Sleep fade overlay */}
+      {sleeping && (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.sleepOverlay, { opacity: sleepFade }]}
+        >
+          <Text style={styles.sleepText}>Resting…</Text>
+        </Animated.View>
+      )}
 
       {chatNpc && <NpcChat npc={chatNpc} onClose={() => setChatNpcId(null)} />}
       {paused && (
@@ -280,6 +417,42 @@ function GlUnavailable({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dark.background },
   joystickWrap: { position: "absolute", left: 18 },
+  actionBtn: {
+    position: "absolute",
+    right: 116,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2fae87",
+    shadowColor: "#2fae87",
+    shadowOpacity: 0.7,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
+  },
+  actionIcon: { fontSize: 20 },
+  actionText: {
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    color: "#fff",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  sleepOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#050810",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sleepText: {
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    letterSpacing: 3,
+    color: "#fff",
+  },
   loader: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.dark.background,

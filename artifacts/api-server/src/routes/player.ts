@@ -24,6 +24,24 @@ function serializePlayerProfile(p: PlayerProfile) {
   };
 }
 
+/**
+ * Number of residential house plots in the starter city. Must match the
+ * HOUSES array length in the mobile app's cityLayout.ts / world seed.
+ */
+const NUM_HOUSE_PLOTS = 8;
+
+/**
+ * The player's assigned home. The plot index is derived deterministically
+ * from the account id so every account always maps to the same house (no
+ * extra table needed). The client resolves the plot to a world position from
+ * the shared, server-driven house objects.
+ */
+router.get("/player/home", requireAuth, async (req, res): Promise<void> => {
+  const id = req.user!.id;
+  const plot = (((id - 1) % NUM_HOUSE_PLOTS) + NUM_HOUSE_PLOTS) % NUM_HOUSE_PLOTS;
+  res.json({ plot });
+});
+
 router.get("/player/profile", requireAuth, async (req, res): Promise<void> => {
   const [profile] = await db
     .select()

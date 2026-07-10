@@ -1,28 +1,62 @@
 import React, { useEffect } from "react";
 
+import { HOUSES } from "@/game/cityLayout";
 import CityScene from "@/game/CityScene";
 import { Sky } from "@/game/drei";
+import InteriorScene from "@/game/InteriorScene";
 import Npc from "@/game/Npc";
 import Player from "@/game/Player";
-import type { ParsedWorldMap } from "@/game/worldMap";
+import TrafficCars from "@/game/TrafficCars";
+import type { Interactable, ParsedWorldMap } from "@/game/worldMap";
 
 const SUN_POSITION: [number, number, number] = [35, 42, -20];
+
+/** A glowing marker floating above the player's own house. */
+function HomeBeacon({ plot }: { plot: number }) {
+  const h = HOUSES[plot];
+  if (!h) return null;
+  return (
+    <group position={[h.x, h.h + 2.6, h.z]}>
+      <mesh>
+        <coneGeometry args={[0.6, 1.2, 4]} />
+        <meshStandardMaterial
+          color="#7cf0c2"
+          emissive="#2fae87"
+          emissiveIntensity={0.9}
+        />
+      </mesh>
+      <pointLight color="#7cf0c2" intensity={1.2} distance={10} />
+    </group>
+  );
+}
 
 export default function WorldScene({
   map,
   avatarId,
+  inside,
+  homePlot,
   onNearNpc,
+  onNearInteract,
   onLoaded,
 }: {
   map: ParsedWorldMap;
   avatarId: string;
+  inside: boolean;
+  homePlot: number | null;
   onNearNpc: (npcId: string | null) => void;
+  onNearInteract: (it: Interactable | null) => void;
   /** Fires once all suspended assets (models, textures) are ready. */
   onLoaded?: () => void;
 }) {
   useEffect(() => {
     onLoaded?.();
   }, [onLoaded]);
+
+  if (inside) {
+    return (
+      <InteriorScene avatarId={avatarId} onNearInteract={onNearInteract} />
+    );
+  }
 
   return (
     <>
@@ -52,11 +86,17 @@ export default function WorldScene({
         shadow-camera-far={120}
         shadow-bias={-0.0005}
       />
-      <CityScene map={map} />
+      <CityScene map={map} homePlot={homePlot} />
+      <TrafficCars />
+      {homePlot !== null && <HomeBeacon plot={homePlot} />}
       {map.npcs.map((n) => (
         <Npc key={n.id} npc={n} />
       ))}
-      <Player avatarId={avatarId} onNearNpc={onNearNpc} />
+      <Player
+        avatarId={avatarId}
+        onNearNpc={onNearNpc}
+        onNearInteract={onNearInteract}
+      />
     </>
   );
 }

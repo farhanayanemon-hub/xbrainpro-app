@@ -23,6 +23,7 @@ export * from './npcChatReply';
 export * from './npcChatTurn';
 export * from './npcChatTurnRole';
 export * from './path';
+export * from './playerHome';
 export * from './playerPhotoUpload';
 export * from './playerProfile';
 export * from './playerProfileGender';

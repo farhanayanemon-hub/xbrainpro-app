@@ -17,6 +17,7 @@ export const WORLD_KINDS = [
   "fountain",
   "stall",
   "npc",
+  "house",
 ] as const;
 
 const worldObjectInput = z.object({

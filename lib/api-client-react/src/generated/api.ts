@@ -33,6 +33,7 @@ import type {
   NpcChatInput,
   NpcChatReply,
   Path,
+  PlayerHome,
   PlayerPhotoUpload,
   PlayerProfile,
   PlayerProfileInput,
@@ -877,6 +878,84 @@ export const useUploadPlayerPhoto = <TError = ErrorType<Error>,
       > => {
       return useMutation(getUploadPlayerPhotoMutationOptions(options));
     }
+
+export const getGetPlayerHomeUrl = () => {
+
+
+
+
+  return `/api/player/home`
+}
+
+/**
+ * Returns the residential plot index assigned to the account. The client resolves the plot to a world position from the shared house objects.
+ * @summary Get the authenticated player's assigned house plot
+ */
+export const getPlayerHome = async ( options?: RequestInit): Promise<PlayerHome> => {
+
+  return customFetch<PlayerHome>(getGetPlayerHomeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlayerHomeQueryKey = () => {
+    return [
+    `/api/player/home`
+    ] as const;
+    }
+
+
+export const getGetPlayerHomeQueryOptions = <TData = Awaited<ReturnType<typeof getPlayerHome>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlayerHomeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlayerHome>>> = ({ signal }) => getPlayerHome({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlayerHome>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlayerHomeQueryResult = NonNullable<Awaited<ReturnType<typeof getPlayerHome>>>
+export type GetPlayerHomeQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the authenticated player's assigned house plot
+ */
+
+export function useGetPlayerHome<TData = Awaited<ReturnType<typeof getPlayerHome>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlayerHomeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetPublicPlayerProfileUrl = (userId: number,) => {
 

@@ -127,6 +127,30 @@ const cars = [
 const fountain = { x: 0, z: -0.5, radius: 1.8 };
 const stall = { x: -10.5, z: 3.2, w: 2.6, d: 1.6, h: 2.2 };
 
+// Residential ring around the city core. Order = plot index (must match the
+// mobile app's cityLayout.ts HOUSES and NUM_HOUSE_PLOTS on the server).
+const HOUSE_W = 6;
+const HOUSE_D = 6;
+const HOUSE_H = 4;
+const houses = [
+  { x: -22, z: -30, rotY: 0 },
+  { x: -12, z: -30, rotY: 0 },
+  { x: 12, z: -30, rotY: 0 },
+  { x: 22, z: -30, rotY: 0 },
+  { x: -22, z: 30, rotY: Math.PI },
+  { x: -12, z: 30, rotY: Math.PI },
+  { x: 12, z: 30, rotY: Math.PI },
+  { x: 22, z: 30, rotY: Math.PI },
+].map((h, i) => ({
+  plot: i,
+  x: h.x,
+  z: h.z,
+  w: HOUSE_W,
+  d: HOUSE_D,
+  h: HOUSE_H,
+  rotY: h.rotY,
+}));
+
 const npcs = [
   {
     id: "lumi",
@@ -167,6 +191,7 @@ const objects = [
   ...cars.map((data) => ({ kind: "car", data })),
   { kind: "fountain", data: fountain },
   { kind: "stall", data: stall },
+  ...houses.map((data) => ({ kind: "house", data })),
   ...npcs.map((data) => ({ kind: "npc", data })),
 ];
 

@@ -15,6 +15,7 @@ import {
   BUILDINGS,
   CARS,
   FOUNTAIN,
+  HOUSES,
   LAMPS,
   PROPS,
   ROOF_PROP_Y,
@@ -25,6 +26,7 @@ import {
   type Aabb,
   type BuildingDef,
   type CarDef,
+  type HouseDef,
   type PropDef,
 } from "@/game/cityLayout";
 import { MODEL_SOURCES, type ModelId } from "@/game/models";
@@ -69,6 +71,7 @@ export interface ParsedWorldMap {
   cars: CarDef[];
   fountains: FountainDef[];
   stalls: StallDef[];
+  houses: HouseDef[];
   npcs: NpcDef[];
 }
 
@@ -82,6 +85,7 @@ export const DEFAULT_MAP: ParsedWorldMap = {
   cars: CARS,
   fountains: [FOUNTAIN],
   stalls: [STALL],
+  houses: HOUSES,
   npcs: NPCS,
 };
 
@@ -164,6 +168,14 @@ function parseStall(d: Raw): StallDef | null {
   return { x, z, w, d: dd, h };
 }
 
+function parseHouse(d: Raw): HouseDef | null {
+  const plot = num(d.plot), x = num(d.x), z = num(d.z);
+  const w = num(d.w), dd = num(d.d), h = num(d.h), rotY = num(d.rotY);
+  if (plot === null || x === null || z === null) return null;
+  if (w === null || dd === null || h === null || rotY === null) return null;
+  return { plot, x, z, w, d: dd, h, rotY };
+}
+
 function parseNpc(d: Raw): NpcDef | null {
   const id = str(d.id), name = str(d.name), x = num(d.x), z = num(d.z);
   if (!id || !name || x === null || z === null) return null;
@@ -193,6 +205,7 @@ export function parseWorldMap(raw: WorldMap): ParsedWorldMap {
     cars: [],
     fountains: [],
     stalls: [],
+    houses: [],
     npcs: [],
   };
 
@@ -237,6 +250,11 @@ export function parseWorldMap(raw: WorldMap): ParsedWorldMap {
       case "stall": {
         const v = parseStall(d);
         if (v) map.stalls.push(v);
+        break;
+      }
+      case "house": {
+        const v = parseHouse(d);
+        if (v) map.houses.push(v);
         break;
       }
       case "npc": {
@@ -308,22 +326,123 @@ export function deriveColliders(map: ParsedWorldMap): Aabb[] {
         PLAYER_RADIUS,
       ),
     ),
+    // Houses are solid in the open city — you enter via the door interactable,
+    // not by walking through the walls.
+    ...map.houses.map((hh) =>
+      expand(
+        {
+          minX: hh.x - hh.w / 2,
+          maxX: hh.x + hh.w / 2,
+          minZ: hh.z - hh.d / 2,
+          maxZ: hh.z + hh.d / 2,
+        },
+        PLAYER_RADIUS,
+      ),
+    ),
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Interactables (contextual "Enter", "Sleep", "Leave" prompts)
+// ---------------------------------------------------------------------------
+
+export type InteractKind = "house" | "bed" | "exit";
+
+export interface Interactable {
+  id: string;
+  kind: InteractKind;
+  x: number;
+  z: number;
+  /** Prompt shows when the player is within this distance. */
+  radius: number;
+  label: string;
+}
+
+/** World-space position just in front of a house's door. */
+export function houseDoor(h: HouseDef): { x: number; z: number } {
+  const dirX = Math.sin(h.rotY);
+  const dirZ = Math.cos(h.rotY);
+  const out = h.d / 2 + 0.9;
+  return { x: h.x + dirX * out, z: h.z + dirZ * out };
 }
 
 // ---------------------------------------------------------------------------
 // Mutable world state read by the 60fps game loop (no React re-renders)
 // ---------------------------------------------------------------------------
 
+const CITY_CAM_DIST = 11;
+const INTERIOR_CAM_DIST = 7;
+
 export const world = {
   map: DEFAULT_MAP,
   colliders: deriveColliders(DEFAULT_MAP),
   bound: WORLD_BOUND,
+  /** Follow-camera distance; tighter indoors so the room is visible. */
+  camDist: CITY_CAM_DIST,
+  /** Contextual prompts the player can trigger (managed by the city screen). */
+  interactables: [] as Interactable[],
 };
 
 export function setActiveWorldMap(map: ParsedWorldMap): void {
   world.map = map;
   world.colliders = deriveColliders(map);
+  world.bound = WORLD_BOUND;
+  world.camDist = CITY_CAM_DIST;
+}
+
+export function setInteractables(list: Interactable[]): void {
+  world.interactables = list;
+}
+
+// ---------------------------------------------------------------------------
+// House interior (a small self-contained room swapped in when you go inside)
+// ---------------------------------------------------------------------------
+
+/** Half-size of the square interior room and the resulting movement bound. */
+export const INTERIOR_HALF = 4.5;
+const INTERIOR_BOUND = INTERIOR_HALF - 0.6;
+
+/** Bed footprint against the back (−Z) wall. */
+export const BED = { x: 0, z: -2.6, w: 1.9, d: 2.6, h: 0.55 };
+/** Where the player spawns when entering (near the door, facing the bed). */
+export const INTERIOR_SPAWN = { x: 0, z: 2 };
+
+const INTERIOR_MAP: ParsedWorldMap = {
+  version: 0,
+  buildings: [],
+  trees: [],
+  lamps: [],
+  props: [],
+  roofProps: [],
+  cars: [],
+  fountains: [],
+  stalls: [],
+  houses: [],
+  npcs: [],
+};
+
+const INTERIOR_INTERACTABLES: Interactable[] = [
+  { id: "bed", kind: "bed", x: BED.x, z: BED.z + BED.d / 2 + 0.4, radius: 1.7, label: "Sleep" },
+  { id: "exit", kind: "exit", x: 0, z: INTERIOR_BOUND, radius: 1.4, label: "Leave home" },
+];
+
+/** Switch the active world to the house interior room. */
+export function setActiveInterior(): void {
+  world.map = INTERIOR_MAP;
+  world.colliders = [
+    expand(
+      {
+        minX: BED.x - BED.w / 2,
+        maxX: BED.x + BED.w / 2,
+        minZ: BED.z - BED.d / 2,
+        maxZ: BED.z + BED.d / 2,
+      },
+      0.4,
+    ),
+  ];
+  world.bound = INTERIOR_BOUND;
+  world.camDist = INTERIOR_CAM_DIST;
+  world.interactables = INTERIOR_INTERACTABLES;
 }
 
 // ---------------------------------------------------------------------------

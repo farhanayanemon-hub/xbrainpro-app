@@ -2,8 +2,9 @@ import React, { useMemo } from "react";
 import { RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 
 import { assetUri } from "@/game/assetUri";
-import type { BuildingDef } from "@/game/cityLayout";
+import { GROUND_SIZE, WORLD_BOUND, type BuildingDef } from "@/game/cityLayout";
 import { useTexture } from "@/game/drei";
+import House from "@/game/House";
 import Model from "@/game/Model";
 import {
   BUILDING_NATIVE_FOOTPRINT,
@@ -93,11 +94,40 @@ function Stall({ s }: { s: StallDef }) {
 
 /** Dashed center-line segments, skipping the plaza circle. */
 const DASH_POSITIONS: number[] = [];
-for (let p = -33; p <= 33; p += 3) {
+for (let p = -GROUND_SIZE / 2 + 4; p <= GROUND_SIZE / 2 - 4; p += 3) {
   if (Math.abs(p) > 9) DASH_POSITIONS.push(p);
 }
 
-export default function CityScene({ map }: { map: ParsedWorldMap }) {
+/** Low perimeter wall so the world edge feels contained, not a void. */
+function PerimeterWalls() {
+  const b = WORLD_BOUND + 1;
+  const len = b * 2;
+  const wy = 0.9;
+  return (
+    <group>
+      {[-b, b].map((z) => (
+        <mesh key={`pz${z}`} position={[0, wy, z]} castShadow receiveShadow>
+          <boxGeometry args={[len, wy * 2, 0.4]} />
+          <meshStandardMaterial color="#6f7f6a" roughness={0.95} />
+        </mesh>
+      ))}
+      {[-b, b].map((x) => (
+        <mesh key={`px${x}`} position={[x, wy, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.4, wy * 2, len]} />
+          <meshStandardMaterial color="#6f7f6a" roughness={0.95} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export default function CityScene({
+  map,
+  homePlot = null,
+}: {
+  map: ParsedWorldMap;
+  homePlot?: number | null;
+}) {
   const grass = useGroundTexture("grass", 14, 14);
   const asphaltV = useGroundTexture("asphalt", 1, 14);
   const asphaltH = useGroundTexture("asphalt", 14, 1);
@@ -109,17 +139,17 @@ export default function CityScene({ map }: { map: ParsedWorldMap }) {
     <group>
       {/* grass ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[70, 70]} />
+        <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
         <meshStandardMaterial map={grass} color="#b8c9a0" />
       </mesh>
 
       {/* asphalt roads */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-        <planeGeometry args={[5, 70]} />
+        <planeGeometry args={[5, GROUND_SIZE]} />
         <meshStandardMaterial map={asphaltV} color="#9c9c9c" />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-        <planeGeometry args={[70, 5]} />
+        <planeGeometry args={[GROUND_SIZE, 5]} />
         <meshStandardMaterial map={asphaltH} color="#9c9c9c" />
       </mesh>
 
@@ -131,7 +161,7 @@ export default function CityScene({ map }: { map: ParsedWorldMap }) {
           position={[x, 0.04, 0]}
           receiveShadow
         >
-          <planeGeometry args={[1.8, 70]} />
+          <planeGeometry args={[1.8, GROUND_SIZE]} />
           <meshStandardMaterial map={pavingWalkV} color="#cfcabe" />
         </mesh>
       ))}
@@ -142,7 +172,7 @@ export default function CityScene({ map }: { map: ParsedWorldMap }) {
           position={[0, 0.04, z]}
           receiveShadow
         >
-          <planeGeometry args={[70, 1.8]} />
+          <planeGeometry args={[GROUND_SIZE, 1.8]} />
           <meshStandardMaterial map={pavingWalkH} color="#cfcabe" />
         </mesh>
       ))}
@@ -184,6 +214,14 @@ export default function CityScene({ map }: { map: ParsedWorldMap }) {
       {map.stalls.map((s, i) => (
         <Stall key={`stall${i}`} s={s} />
       ))}
+
+      {/* residential houses */}
+      {map.houses.map((hh) => (
+        <House key={`house${hh.plot}`} house={hh} isHome={hh.plot === homePlot} />
+      ))}
+
+      {/* perimeter wall */}
+      <PerimeterWalls />
 
       {/* buildings */}
       {map.buildings.map((bd, i) => (

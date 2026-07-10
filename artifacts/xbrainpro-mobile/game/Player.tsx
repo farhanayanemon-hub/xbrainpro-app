@@ -6,7 +6,7 @@ import { Vector3 } from "three";
 import Avatar from "@/game/Avatar";
 import { TALK_DISTANCE } from "@/game/npcs";
 import { game } from "@/game/store";
-import { world } from "@/game/worldMap";
+import { world, type Interactable } from "@/game/worldMap";
 
 const SPEED = 5;
 
@@ -82,13 +82,16 @@ class AvatarBoundary extends React.Component<
 export default function Player({
   avatarId,
   onNearNpc,
+  onNearInteract,
 }: {
   avatarId: string;
   onNearNpc: (npcId: string | null) => void;
+  onNearInteract?: (it: Interactable | null) => void;
 }) {
   const group = useRef<Group>(null);
   const camTarget = useRef(new Vector3());
   const lastNear = useRef<string | null>(null);
+  const lastInteract = useRef<string | null>(null);
 
   useFrame((state, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
@@ -126,7 +129,7 @@ export default function Player({
     }
 
     // orbit follow camera (yaw 360°, pitch clamped by the control surface)
-    const dist = 11;
+    const dist = world.camDist;
     const { yaw: cy, pitch } = game.cam;
     const horiz = dist * Math.cos(pitch);
     camTarget.current.set(
@@ -152,6 +155,22 @@ export default function Player({
     if (near !== lastNear.current) {
       lastNear.current = near;
       onNearNpc(near);
+    }
+
+    // Interactable proximity (house doors, bed, exit)
+    let nearIt: Interactable | null = null;
+    let bestD = Infinity;
+    for (const it of world.interactables) {
+      const d = Math.hypot(it.x - game.player.x, it.z - game.player.z);
+      if (d < it.radius && d < bestD) {
+        bestD = d;
+        nearIt = it;
+      }
+    }
+    const nearItId = nearIt ? nearIt.id : null;
+    if (nearItId !== lastInteract.current) {
+      lastInteract.current = nearItId;
+      onNearInteract?.(nearIt);
     }
   });
 

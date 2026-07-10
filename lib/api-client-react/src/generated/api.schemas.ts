@@ -77,6 +77,11 @@ export interface PlayerProfile {
   photoUrl?: string | null;
 }
 
+export interface PlayerHome {
+  /** Index of the assigned residential house plot in the world map. */
+  plot: number;
+}
+
 export type PlayerProfileInputGender = typeof PlayerProfileInputGender[keyof typeof PlayerProfileInputGender];
 
 
@@ -363,6 +368,7 @@ export const WorldObjectKind = {
   fountain: 'fountain',
   stall: 'stall',
   npc: 'npc',
+  house: 'house',
 } as const;
 
 export type WorldObjectData = { [key: string]: unknown };

@@ -167,7 +167,46 @@ export const FOUNTAIN = { x: 0, z: -0.5, radius: 1.8 };
 /** Rex's noodle stall on the market street (west road). */
 export const STALL = { x: -10.5, z: 3.2, w: 2.6, d: 1.6, h: 2.2 };
 
-export const WORLD_BOUND = 27;
+export interface HouseDef {
+  /** Residential plot index; matches the server /player/home assignment. */
+  plot: number;
+  x: number;
+  z: number;
+  /** Footprint width / depth and wall height. */
+  w: number;
+  d: number;
+  h: number;
+  /** Yaw: the front (door side) faces +Z rotated by this angle. */
+  rotY: number;
+}
+
+/**
+ * Residential ring around the city core. The array order IS the plot index
+ * and must match the world seed (seed-world.mjs) and the server's
+ * NUM_HOUSE_PLOTS so /player/home resolves to the right house.
+ */
+export const HOUSES: HouseDef[] = [
+  { x: -22, z: -30, rotY: 0 },
+  { x: -12, z: -30, rotY: 0 },
+  { x: 12, z: -30, rotY: 0 },
+  { x: 22, z: -30, rotY: 0 },
+  { x: -22, z: 30, rotY: Math.PI },
+  { x: -12, z: 30, rotY: Math.PI },
+  { x: 12, z: 30, rotY: Math.PI },
+  { x: 22, z: 30, rotY: Math.PI },
+].map((h, i) => ({ plot: i, x: h.x, z: h.z, w: 6, d: 6, h: 4, rotY: h.rotY }));
+
+export const NUM_HOUSE_PLOTS = HOUSES.length;
+
+/**
+ * The playable area is a square centred on the origin. Bigger than the old
+ * 27 so the residential ring is reachable; the ground / roads / perimeter
+ * wall are all sized to this so there are no invisible edges.
+ */
+export const WORLD_BOUND = 34;
+
+/** Ground plane / road length (a little beyond the bound so edges are hidden). */
+export const GROUND_SIZE = (WORLD_BOUND + 4) * 2;
 
 // Collision volumes are derived from the active (server-driven) map in
 // worldMap.ts, so visuals and collisions always agree even for new content.

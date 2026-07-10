@@ -213,6 +213,15 @@ export const UploadPlayerPhotoResponse = zod.object({
 
 
 /**
+ * Returns the residential plot index assigned to the account. The client resolves the plot to a world position from the shared house objects.
+ * @summary Get the authenticated player's assigned house plot
+ */
+export const GetPlayerHomeResponse = zod.object({
+  "plot": zod.number().describe('Index of the assigned residential house plot in the world map.')
+})
+
+
+/**
  * @summary Get another player's public profile
  */
 export const GetPublicPlayerProfileParams = zod.object({
@@ -753,7 +762,7 @@ export const GetWorldMapResponse = zod.object({
   "version": zod.number().describe('Monotonically increasing map version; also served as a weak ETag.'),
   "objects": zod.array(zod.object({
   "id": zod.number(),
-  "kind": zod.enum(['building', 'tree', 'lamp', 'prop', 'roofProp', 'car', 'fountain', 'stall', 'npc']),
+  "kind": zod.enum(['building', 'tree', 'lamp', 'prop', 'roofProp', 'car', 'fountain', 'stall', 'npc', 'house']),
   "data": zod.record(zod.string(), zod.unknown())
 }).describe('One placed object in the world. `kind` selects the client renderer; `data` carries kind-specific fields (bundled model id, position, rotation, scale, collision size, ...).'))
 })
