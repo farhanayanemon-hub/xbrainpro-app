@@ -1,316 +1,210 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import {
+  getCurrentUser,
+  getPlayerProfile,
+  logout as apiLogout,
+  type AuthResult,
+  type PlayerProfile,
+} from "@workspace/api-client-react";
 
-import AvatarPicker from "@/components/AvatarPicker";
-import CameraControl from "@/components/CameraControl";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Hud from "@/components/Hud";
-import Joystick from "@/components/Joystick";
-import NpcChat from "@/components/NpcChat";
-import PauseMenu from "@/components/PauseMenu";
+import AuthScreen from "@/components/lobby/AuthScreen";
+import LobbyScreen from "@/components/lobby/LobbyScreen";
+import ProfileSetup from "@/components/lobby/ProfileSetup";
 import colors, { fonts } from "@/constants/colors";
-import {
-  DEFAULT_AVATAR_ID,
-  loadAvatarId,
-  saveAvatarId,
-} from "@/game/avatar";
-import GameCanvas from "@/game/GameCanvas";
-import { game, resetInput } from "@/game/store";
-import {
-  downloadResources,
-  type ResourceProgress,
-} from "@/game/resources";
-import {
-  DEFAULT_MAP,
-  loadWorldMap,
-  setActiveWorldMap,
-  type ParsedWorldMap,
-} from "@/game/worldMap";
-import WorldScene from "@/game/WorldScene";
+import { clearToken, loadToken, saveToken } from "@/lib/session";
 
-export default function NeuraCity() {
-  const insets = useSafeAreaInsets();
-  const [ready, setReady] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
-  const [nearNpcId, setNearNpcId] = useState<string | null>(null);
-  const [chatNpcId, setChatNpcId] = useState<string | null>(null);
-  const [paused, setPaused] = useState(false);
-  const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
-  const [pickingAvatar, setPickingAvatar] = useState(false);
-  const [worldMap, setWorldMap] = useState<ParsedWorldMap>(DEFAULT_MAP);
-  const [resProgress, setResProgress] = useState<ResourceProgress>({
-    done: 0,
-    total: 1,
-  });
-  const [resourcesDone, setResourcesDone] = useState(false);
+const C = colors.dark;
 
-  const userPickedAvatar = useRef(false);
+type Stage = "loading" | "auth" | "setup" | "editing" | "lobby" | "error";
 
-  // Game-style resource download step with real progress.
-  useEffect(() => {
-    let cancelled = false;
-    downloadResources((p) => {
-      if (!cancelled) setResProgress(p);
-    }).finally(() => {
-      if (!cancelled) setResourcesDone(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadAvatarId().then((id) => {
-      // Don't clobber a choice the user made before hydration finished.
-      if (!cancelled && !userPickedAvatar.current) setAvatarId(id);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Fetch the live world map (cache/offline fallback handled inside).
-  useEffect(() => {
-    let cancelled = false;
-    loadWorldMap().then((map) => {
-      if (cancelled) return;
-      setActiveWorldMap(map);
-      setWorldMap(map);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (ready) {
-      const t = setTimeout(() => setShowLoader(false), 150);
-      return () => clearTimeout(t);
-    }
-  }, [ready]);
-
-  useEffect(() => {
-    game.frozen = paused || pickingAvatar || chatNpcId !== null;
-    if (game.frozen) resetInput();
-  }, [paused, pickingAvatar, chatNpcId]);
-
-  const onSelectAvatar = useCallback((id: string) => {
-    userPickedAvatar.current = true;
-    setAvatarId(id);
-    void saveAvatarId(id);
-  }, []);
-
-  const onNearNpc = useCallback((id: string | null) => setNearNpcId(id), []);
-
-  const nearNpc = useMemo(
-    () => worldMap.npcs.find((n) => n.id === nearNpcId) ?? null,
-    [worldMap, nearNpcId],
-  );
-  const chatNpc = useMemo(
-    () => worldMap.npcs.find((n) => n.id === chatNpcId) ?? null,
-    [worldMap, chatNpcId],
-  );
-
-  const WorldFallback = useCallback(
-    ({ error }: { error?: Error }) => {
-      // Shown when the 3D world crashes for any reason (WebGL or otherwise).
-      return <GlUnavailable onShown={() => setReady(true)} error={error} />;
-    },
-    [],
-  );
-
-  return (
-    <View style={styles.root}>
-      <ErrorBoundary FallbackComponent={WorldFallback}>
-        <GameCanvas
-          fallback={<GlUnavailable onShown={() => setReady(true)} />}
-        >
-          <React.Suspense fallback={null}>
-            <WorldScene
-              map={worldMap}
-              avatarId={avatarId}
-              onNearNpc={onNearNpc}
-              onLoaded={() => setReady(true)}
-            />
-          </React.Suspense>
-        </GameCanvas>
-      </ErrorBoundary>
-
-      {/* right-half drag surface rotates the camera */}
-      <CameraControl />
-
-      {/* joystick bottom-left */}
-      <View style={[styles.joystickWrap, { bottom: 40 + insets.bottom }]}>
-        <Joystick />
-      </View>
-
-      <Hud
-        nearNpc={nearNpc}
-        onTalk={() => nearNpc && setChatNpcId(nearNpc.id)}
-        onPause={() => setPaused(true)}
-      />
-
-      {chatNpc && <NpcChat npc={chatNpc} onClose={() => setChatNpcId(null)} />}
-      {paused && (
-        <PauseMenu
-          onResume={() => setPaused(false)}
-          onChangeAvatar={() => {
-            setPaused(false);
-            setPickingAvatar(true);
-          }}
-        />
-      )}
-      {pickingAvatar && (
-        <AvatarPicker
-          selectedId={avatarId}
-          onSelect={onSelectAvatar}
-          onClose={() => setPickingAvatar(false)}
-        />
-      )}
-
-      {/* loading screen */}
-      {showLoader && (
-        <View style={styles.loader}>
-          <Text style={styles.loaderSpark}>✦</Text>
-          <Text style={styles.loaderTitle}>NEURA CITY</Text>
-          <Text style={styles.loaderSub}>
-            {resourcesDone
-              ? "Entering the Plaza district…"
-              : "Downloading city resources…"}
-          </Text>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${Math.round(
-                    (resProgress.done / Math.max(resProgress.total, 1)) * 100,
-                  )}%` as `${number}%`,
-                },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressLabel}>
-            {resourcesDone
-              ? "Ready"
-              : `${resProgress.done} / ${resProgress.total}`}
-          </Text>
-          {resourcesDone && (
-            <ActivityIndicator
-              color={colors.dark.primary}
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </View>
-      )}
-    </View>
-  );
+/** Read an HTTP status off a thrown API error, if present. */
+function errStatus(e: unknown): number | undefined {
+  return (e as { status?: number })?.status;
 }
 
-function GlUnavailable({
-  onShown,
-  error,
-}: {
-  onShown: () => void;
-  error?: Error;
-}) {
+export default function Gate() {
+  const router = useRouter();
+  const [stage, setStage] = useState<Stage>("loading");
+  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+
+  // Restore the session on launch: token → user → profile → lobby.
+  const restore = useCallback(async () => {
+    setStage("loading");
+    const token = await loadToken();
+    if (!token) {
+      setStage("auth");
+      return;
+    }
+    try {
+      await getCurrentUser();
+    } catch (e) {
+      if (errStatus(e) === 401) {
+        // Token expired or invalid — back to login.
+        await clearToken();
+        setStage("auth");
+      } else {
+        // Network / server hiccup — let the user retry instead of losing session.
+        setStage("error");
+      }
+      return;
+    }
+    try {
+      const p = await getPlayerProfile();
+      setProfile(p);
+      setStage("lobby");
+    } catch (e) {
+      const status = errStatus(e);
+      if (status === 404) {
+        setStage("setup"); // logged in but no profile yet
+      } else if (status === 401) {
+        await clearToken();
+        setStage("auth");
+      } else {
+        setStage("error");
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    onShown();
-  }, [onShown]);
-  return (
-    <View style={styles.glFallback}>
-      <Text style={styles.loaderSpark}>✦</Text>
-      <Text style={styles.glTitle}>NEURA CITY</Text>
-      <Text style={styles.glText}>
-        {error
-          ? "Something went wrong while loading the 3D world."
-          : "This device can't render the 3D world (no WebGL support). Open the app on your phone or a browser with 3D graphics enabled."}
-      </Text>
-      {error ? (
-        <Text style={styles.glError}>
-          {String(error.message || error).slice(0, 300)}
+    let cancelled = false;
+    void (async () => {
+      if (!cancelled) await restore();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restore]);
+
+  const handleAuthed = useCallback(async (result: AuthResult, isNew: boolean) => {
+    await saveToken(result.token);
+    if (isNew) {
+      setProfile(null);
+      setStage("setup");
+      return;
+    }
+    try {
+      const p = await getPlayerProfile();
+      setProfile(p);
+      setStage("lobby");
+    } catch (e) {
+      // Existing account without a profile still needs setup; only 404 means that.
+      if (errStatus(e) === 404) {
+        setStage("setup");
+      } else {
+        setStage("error");
+      }
+    }
+  }, []);
+
+  const handleProfileDone = useCallback((p: PlayerProfile) => {
+    setProfile(p);
+    setStage("lobby");
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // even if the server call fails, drop the local session
+    }
+    await clearToken();
+    setProfile(null);
+    setStage("auth");
+  }, []);
+
+  if (stage === "loading") {
+    return (
+      <View style={styles.loading}>
+        <Text style={styles.loadingSpark}>✦</Text>
+        <Text style={styles.loadingTitle}>NEURA CITY</Text>
+        <ActivityIndicator color={C.primary} style={{ marginTop: 14 }} />
+      </View>
+    );
+  }
+
+  if (stage === "error") {
+    return (
+      <View style={styles.loading}>
+        <Text style={styles.loadingSpark}>✦</Text>
+        <Text style={styles.loadingTitle}>NEURA CITY</Text>
+        <Text style={styles.errorText}>
+          Couldn't reach the city servers. Check your connection and try
+          again.
         </Text>
-      ) : null}
-    </View>
+        <Pressable style={styles.retryBtn} onPress={() => void restore()}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (stage === "auth") {
+    return <AuthScreen onAuthed={handleAuthed} />;
+  }
+
+  if (stage === "setup" || stage === "editing") {
+    return (
+      <ProfileSetup
+        initial={stage === "editing" ? profile : null}
+        onDone={handleProfileDone}
+        onCancel={
+          stage === "editing" ? () => setStage("lobby") : undefined
+        }
+      />
+    );
+  }
+
+  return (
+    <LobbyScreen
+      profile={profile!}
+      onPlay={() => router.push("/city")}
+      onEditProfile={() => setStage("editing")}
+      onLogout={handleLogout}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dark.background },
-  joystickWrap: { position: "absolute", left: 18 },
-  loader: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.dark.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loaderSpark: { color: colors.dark.primary, fontSize: 26, marginBottom: 10 },
-  loaderTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 30,
-    letterSpacing: 6,
-    color: "#fff",
-  },
-  loaderSub: {
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    color: colors.dark.mutedForeground,
-    marginTop: 8,
-  },
-  progressTrack: {
-    width: 220,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    marginTop: 24,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-    backgroundColor: colors.dark.primary,
-  },
-  progressLabel: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.dark.mutedForeground,
-    marginTop: 10,
-  },
-  glFallback: {
+  loading: {
     flex: 1,
+    backgroundColor: C.background,
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
-    backgroundColor: colors.dark.background,
   },
-  glTitle: {
+  loadingSpark: { color: C.primary, fontSize: 26, marginBottom: 8 },
+  loadingTitle: {
     fontFamily: fonts.heading,
     fontSize: 24,
     letterSpacing: 5,
     color: "#fff",
-    marginBottom: 12,
   },
-  glText: {
+  errorText: {
     fontFamily: fonts.body,
     fontSize: 14,
-    lineHeight: 21,
-    color: colors.dark.mutedForeground,
-    textAlign: "center",
-  },
-  glError: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#f87171",
+    color: C.mutedForeground,
     textAlign: "center",
     marginTop: 14,
+    marginHorizontal: 40,
+  },
+  retryBtn: {
+    backgroundColor: C.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginTop: 18,
+  },
+  retryText: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    letterSpacing: 2,
+    color: "#fff",
   },
 });

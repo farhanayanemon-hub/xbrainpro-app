@@ -20,6 +20,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
+import { installAuthTokenGetter } from "@/lib/session";
+import "./global.css";
 
 // Expo bundles run outside the web proxy and need an absolute API base URL.
 // In production web exports (served by the api-server itself, e.g. at /play),
@@ -33,6 +35,7 @@ setBaseUrl(
       ? window.location.origin
       : null,
 );
+installAuthTokenGetter();
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -58,7 +61,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
             <StatusBar style="light" />
             <Stack

@@ -34,7 +34,8 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- User speaks Banglish — always respond in Banglish, simple non-technical explanations (novice user).
+- After EVERY completed task: push all changes to GitHub (repo farhanayanemon-hub/xbrainpro-app), verify Railway deploy at xbrainpro.com, then give the user a migration prompt (a ready-to-paste text describing the project state + next roadmap) so they can continue in a new Replit account if credits run out.
 
 ## Gotchas
 

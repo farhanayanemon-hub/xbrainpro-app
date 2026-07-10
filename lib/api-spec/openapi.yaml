@@ -14,6 +14,8 @@ tags:
     description: Authentication
   - name: profile
     description: User profile and self-assessment
+  - name: players
+    description: Neura City player game profiles
   - name: paths
     description: Transformation paths
   - name: programs
@@ -191,6 +193,154 @@ paths:
                 $ref: "#/components/schemas/Error"
         "502":
           description: Storage is not configured or upload failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /player/profile:
+    get:
+      operationId: getPlayerProfile
+      tags: [players]
+      summary: Get the authenticated player's game profile
+      responses:
+        "200":
+          description: Player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Profile not created yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: upsertPlayerProfile
+      tags: [players]
+      summary: Create or update the authenticated player's game profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerProfileInput"
+      responses:
+        "200":
+          description: Saved player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /player/photo:
+    post:
+      operationId: uploadPlayerPhoto
+      tags: [players]
+      summary: Upload the authenticated player's profile photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerPhotoUpload"
+      responses:
+        "200":
+          description: Updated player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "400":
+          description: Invalid or oversized image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Profile not created yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /players/{userId}:
+    get:
+      operationId: getPublicPlayerProfile
+      tags: [players]
+      summary: Get another player's public profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Public player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /players/{userId}/photo:
+    get:
+      operationId: getPlayerPhoto
+      tags: [players]
+      summary: Get a player's profile photo (image bytes)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Photo bytes
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No photo
           content:
             application/json:
               schema:
@@ -664,6 +814,51 @@ components:
         contentType:
           type: string
           description: The MIME type of the image, e.g. image/png or image/jpeg
+
+    PlayerProfile:
+      type: object
+      required: [userId, displayName, gender, hasPhoto]
+      properties:
+        userId:
+          type: integer
+        displayName:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        bio:
+          type: ["string", "null"]
+        hasPhoto:
+          type: boolean
+        photoUrl:
+          type: ["string", "null"]
+          description: Relative URL serving the photo bytes, null when no photo
+
+    PlayerProfileInput:
+      type: object
+      required: [displayName, gender]
+      properties:
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 24
+        gender:
+          type: string
+          enum: [male, female]
+        bio:
+          type: ["string", "null"]
+          maxLength: 300
+
+    PlayerPhotoUpload:
+      type: object
+      required: [imageBase64, contentType]
+      properties:
+        imageBase64:
+          type: string
+          description: The image encoded as a base64 string (without data URI prefix)
+        contentType:
+          type: string
+          description: MIME type, e.g. image/jpeg or image/png
 
     Profile:
       type: object

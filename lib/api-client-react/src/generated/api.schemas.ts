@@ -55,6 +55,57 @@ export interface AvatarUpload {
   contentType: string;
 }
 
+export type PlayerProfileGender = typeof PlayerProfileGender[keyof typeof PlayerProfileGender];
+
+
+export const PlayerProfileGender = {
+  male: 'male',
+  female: 'female',
+} as const;
+
+export interface PlayerProfile {
+  userId: number;
+  displayName: string;
+  gender: PlayerProfileGender;
+  /** @nullable */
+  bio?: string | null;
+  hasPhoto: boolean;
+  /**
+     * Relative URL serving the photo bytes, null when no photo
+     * @nullable
+     */
+  photoUrl?: string | null;
+}
+
+export type PlayerProfileInputGender = typeof PlayerProfileInputGender[keyof typeof PlayerProfileInputGender];
+
+
+export const PlayerProfileInputGender = {
+  male: 'male',
+  female: 'female',
+} as const;
+
+export interface PlayerProfileInput {
+  /**
+     * @minLength 2
+     * @maxLength 24
+     */
+  displayName: string;
+  gender: PlayerProfileInputGender;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  bio?: string | null;
+}
+
+export interface PlayerPhotoUpload {
+  /** The image encoded as a base64 string (without data URI prefix) */
+  imageBase64: string;
+  /** MIME type, e.g. image/jpeg or image/png */
+  contentType: string;
+}
+
 export interface Profile {
   userId: number;
   onboarded: boolean;

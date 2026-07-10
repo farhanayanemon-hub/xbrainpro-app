@@ -156,6 +156,90 @@ export const UploadAvatarResponse = zod.object({
 
 
 /**
+ * @summary Get the authenticated player's game profile
+ */
+export const GetPlayerProfileResponse = zod.object({
+  "userId": zod.number(),
+  "displayName": zod.string(),
+  "gender": zod.enum(['male', 'female']),
+  "bio": zod.string().nullish(),
+  "hasPhoto": zod.boolean(),
+  "photoUrl": zod.string().nullish().describe('Relative URL serving the photo bytes, null when no photo')
+})
+
+
+/**
+ * @summary Create or update the authenticated player's game profile
+ */
+export const upsertPlayerProfileBodyDisplayNameMin = 2;
+export const upsertPlayerProfileBodyDisplayNameMax = 24;
+
+export const upsertPlayerProfileBodyBioMax = 300;
+
+
+
+export const UpsertPlayerProfileBody = zod.object({
+  "displayName": zod.string().min(upsertPlayerProfileBodyDisplayNameMin).max(upsertPlayerProfileBodyDisplayNameMax),
+  "gender": zod.enum(['male', 'female']),
+  "bio": zod.string().max(upsertPlayerProfileBodyBioMax).nullish()
+})
+
+export const UpsertPlayerProfileResponse = zod.object({
+  "userId": zod.number(),
+  "displayName": zod.string(),
+  "gender": zod.enum(['male', 'female']),
+  "bio": zod.string().nullish(),
+  "hasPhoto": zod.boolean(),
+  "photoUrl": zod.string().nullish().describe('Relative URL serving the photo bytes, null when no photo')
+})
+
+
+/**
+ * @summary Upload the authenticated player's profile photo
+ */
+export const UploadPlayerPhotoBody = zod.object({
+  "imageBase64": zod.string().describe('The image encoded as a base64 string (without data URI prefix)'),
+  "contentType": zod.string().describe('MIME type, e.g. image\/jpeg or image\/png')
+})
+
+export const UploadPlayerPhotoResponse = zod.object({
+  "userId": zod.number(),
+  "displayName": zod.string(),
+  "gender": zod.enum(['male', 'female']),
+  "bio": zod.string().nullish(),
+  "hasPhoto": zod.boolean(),
+  "photoUrl": zod.string().nullish().describe('Relative URL serving the photo bytes, null when no photo')
+})
+
+
+/**
+ * @summary Get another player's public profile
+ */
+export const GetPublicPlayerProfileParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const GetPublicPlayerProfileResponse = zod.object({
+  "userId": zod.number(),
+  "displayName": zod.string(),
+  "gender": zod.enum(['male', 'female']),
+  "bio": zod.string().nullish(),
+  "hasPhoto": zod.boolean(),
+  "photoUrl": zod.string().nullish().describe('Relative URL serving the photo bytes, null when no photo')
+})
+
+
+/**
+ * @summary Get a player's profile photo (image bytes)
+ */
+export const GetPlayerPhotoParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const GetPlayerPhotoResponse = zod.unknown()
+
+
+/**
  * @summary List the available transformation paths
  */
 export const ListPathsResponseItem = zod.object({

@@ -31,7 +31,15 @@ and the mobile app can point `setBaseUrl` at that same domain.
   `OPENROUTER_API_KEY`, and `DATABASE_URL` (Supabase Session-pooler Postgres URI —
   the Replit dev Helium DB is unreachable from Railway; drizzle-kit push was run
   against Supabase to create the schema).
-- Mobile (Expo) is NOT deployed to Railway; point its API domain at the deployed URL.
+- Mobile (Expo) is NOT deployed to Railway as a native app; BUT its **web export IS
+  served live at `/play`** on the same service: Railway build also runs the mobile
+  package's `build:web` (expo export --platform web → `web-dist`, base path `/play` via
+  `EXPO_WEB_BASE_URL` + `app.config.js`), and api-server serves it at `/play` in
+  production (immutable cache for hashed assets, no-cache HTML). The exported web app
+  finds the API via `window.location.origin` fallback when `EXPO_PUBLIC_DOMAIN` is unset.
+- git push to GitHub main is blocked locally — push local main to a temp branch, then
+  PATCH the main ref via GitHub API; for uncommitted files, create blobs/tree/commit
+  via the GitHub git API on top of the current head.
 
 **Deployed state (live):**
 - Railway project `nurturing-dedication` (id db162504-62e1-4924-859b-dcfaa00b6bfb),

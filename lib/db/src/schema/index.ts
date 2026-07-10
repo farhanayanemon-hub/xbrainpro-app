@@ -1,6 +1,7 @@
 export * from "./users";
 export * from "./sessions";
 export * from "./profiles";
+export * from "./playerProfiles";
 export * from "./programs";
 export * from "./levels";
 export * from "./tasks";

@@ -1,0 +1,13 @@
+/* Web-only: make the Expo Router root fill the viewport so flex:1 screens
+   (login, lobby, profile) don't collapse to zero height. No-op on native. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}

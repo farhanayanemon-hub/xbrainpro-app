@@ -6,9 +6,11 @@ import colors, { fonts } from "@/constants/colors";
 export default function PauseMenu({
   onResume,
   onChangeAvatar,
+  onExit,
 }: {
   onResume: () => void;
   onChangeAvatar: () => void;
+  onExit?: () => void;
 }) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onResume}>
@@ -30,6 +32,11 @@ export default function PauseMenu({
           <Pressable style={styles.avatarBtn} onPress={onChangeAvatar}>
             <Text style={styles.avatarText}>Change avatar</Text>
           </Pressable>
+          {onExit && (
+            <Pressable style={styles.exitBtn} onPress={onExit}>
+              <Text style={styles.exitText}>Exit to lobby</Text>
+            </Pressable>
+          )}
           <Text style={styles.version}>Phase 1 • Plaza District</Text>
         </View>
       </View>
@@ -99,6 +106,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.headingSemi,
     fontSize: 15,
     color: "rgba(255,255,255,0.9)",
+  },
+  exitBtn: {
+    alignSelf: "stretch",
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: "rgba(239,67,67,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  exitText: {
+    fontFamily: fonts.headingSemi,
+    fontSize: 15,
+    color: "#ff8f8f",
   },
   version: {
     fontFamily: fonts.medium,

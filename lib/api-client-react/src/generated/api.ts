@@ -33,6 +33,9 @@ import type {
   NpcChatInput,
   NpcChatReply,
   Path,
+  PlayerPhotoUpload,
+  PlayerProfile,
+  PlayerProfileInput,
   Profile,
   ProfileUpdate,
   Program,
@@ -657,6 +660,377 @@ export const useUploadAvatar = <TError = ErrorType<Error>,
       > => {
       return useMutation(getUploadAvatarMutationOptions(options));
     }
+
+export const getGetPlayerProfileUrl = () => {
+
+
+
+
+  return `/api/player/profile`
+}
+
+/**
+ * @summary Get the authenticated player's game profile
+ */
+export const getPlayerProfile = async ( options?: RequestInit): Promise<PlayerProfile> => {
+
+  return customFetch<PlayerProfile>(getGetPlayerProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlayerProfileQueryKey = () => {
+    return [
+    `/api/player/profile`
+    ] as const;
+    }
+
+
+export const getGetPlayerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getPlayerProfile>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlayerProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlayerProfile>>> = ({ signal }) => getPlayerProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlayerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlayerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getPlayerProfile>>>
+export type GetPlayerProfileQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the authenticated player's game profile
+ */
+
+export function useGetPlayerProfile<TData = Awaited<ReturnType<typeof getPlayerProfile>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlayerProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertPlayerProfileUrl = () => {
+
+
+
+
+  return `/api/player/profile`
+}
+
+/**
+ * @summary Create or update the authenticated player's game profile
+ */
+export const upsertPlayerProfile = async (playerProfileInput: PlayerProfileInput, options?: RequestInit): Promise<PlayerProfile> => {
+
+  return customFetch<PlayerProfile>(getUpsertPlayerProfileUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(playerProfileInput)
+  }
+);}
+
+
+
+
+export const getUpsertPlayerProfileMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertPlayerProfile>>, TError,{data: BodyType<PlayerProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertPlayerProfile>>, TError,{data: BodyType<PlayerProfileInput>}, TContext> => {
+
+const mutationKey = ['upsertPlayerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertPlayerProfile>>, {data: BodyType<PlayerProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  upsertPlayerProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertPlayerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof upsertPlayerProfile>>>
+    export type UpsertPlayerProfileMutationBody = BodyType<PlayerProfileInput>
+    export type UpsertPlayerProfileMutationError = ErrorType<Error>
+
+    /**
+ * @summary Create or update the authenticated player's game profile
+ */
+export const useUpsertPlayerProfile = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertPlayerProfile>>, TError,{data: BodyType<PlayerProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertPlayerProfile>>,
+        TError,
+        {data: BodyType<PlayerProfileInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertPlayerProfileMutationOptions(options));
+    }
+
+export const getUploadPlayerPhotoUrl = () => {
+
+
+
+
+  return `/api/player/photo`
+}
+
+/**
+ * @summary Upload the authenticated player's profile photo
+ */
+export const uploadPlayerPhoto = async (playerPhotoUpload: PlayerPhotoUpload, options?: RequestInit): Promise<PlayerProfile> => {
+
+  return customFetch<PlayerProfile>(getUploadPlayerPhotoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(playerPhotoUpload)
+  }
+);}
+
+
+
+
+export const getUploadPlayerPhotoMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadPlayerPhoto>>, TError,{data: BodyType<PlayerPhotoUpload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadPlayerPhoto>>, TError,{data: BodyType<PlayerPhotoUpload>}, TContext> => {
+
+const mutationKey = ['uploadPlayerPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadPlayerPhoto>>, {data: BodyType<PlayerPhotoUpload>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadPlayerPhoto(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadPlayerPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof uploadPlayerPhoto>>>
+    export type UploadPlayerPhotoMutationBody = BodyType<PlayerPhotoUpload>
+    export type UploadPlayerPhotoMutationError = ErrorType<Error>
+
+    /**
+ * @summary Upload the authenticated player's profile photo
+ */
+export const useUploadPlayerPhoto = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadPlayerPhoto>>, TError,{data: BodyType<PlayerPhotoUpload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadPlayerPhoto>>,
+        TError,
+        {data: BodyType<PlayerPhotoUpload>},
+        TContext
+      > => {
+      return useMutation(getUploadPlayerPhotoMutationOptions(options));
+    }
+
+export const getGetPublicPlayerProfileUrl = (userId: number,) => {
+
+
+
+
+  return `/api/players/${userId}`
+}
+
+/**
+ * @summary Get another player's public profile
+ */
+export const getPublicPlayerProfile = async (userId: number, options?: RequestInit): Promise<PlayerProfile> => {
+
+  return customFetch<PlayerProfile>(getGetPublicPlayerProfileUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicPlayerProfileQueryKey = (userId: number,) => {
+    return [
+    `/api/players/${userId}`
+    ] as const;
+    }
+
+
+export const getGetPublicPlayerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getPublicPlayerProfile>>, TError = ErrorType<Error>>(userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicPlayerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicPlayerProfileQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicPlayerProfile>>> = ({ signal }) => getPublicPlayerProfile(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicPlayerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicPlayerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>
+export type GetPublicPlayerProfileQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get another player's public profile
+ */
+
+export function useGetPublicPlayerProfile<TData = Awaited<ReturnType<typeof getPublicPlayerProfile>>, TError = ErrorType<Error>>(
+ userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicPlayerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicPlayerProfileQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlayerPhotoUrl = (userId: number,) => {
+
+
+
+
+  return `/api/players/${userId}/photo`
+}
+
+/**
+ * @summary Get a player's profile photo (image bytes)
+ */
+export const getPlayerPhoto = async (userId: number, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPlayerPhotoUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlayerPhotoQueryKey = (userId: number,) => {
+    return [
+    `/api/players/${userId}/photo`
+    ] as const;
+    }
+
+
+export const getGetPlayerPhotoQueryOptions = <TData = Awaited<ReturnType<typeof getPlayerPhoto>>, TError = ErrorType<Error>>(userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerPhoto>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlayerPhotoQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlayerPhoto>>> = ({ signal }) => getPlayerPhoto(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlayerPhoto>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlayerPhotoQueryResult = NonNullable<Awaited<ReturnType<typeof getPlayerPhoto>>>
+export type GetPlayerPhotoQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get a player's profile photo (image bytes)
+ */
+
+export function useGetPlayerPhoto<TData = Awaited<ReturnType<typeof getPlayerPhoto>>, TError = ErrorType<Error>>(
+ userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerPhoto>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlayerPhotoQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListPathsUrl = () => {
 
