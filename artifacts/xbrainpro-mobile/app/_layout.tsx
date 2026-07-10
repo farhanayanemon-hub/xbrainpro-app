@@ -11,9 +11,11 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { Stack } from "expo-router";
+import * as ScreenOrientation from "expo-screen-orientation";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -55,6 +57,16 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // Force the whole game into landscape on real devices (web uses the browser
+  // viewport, so orientation lock is skipped there).
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE,
+      ).catch(() => {});
+    }
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

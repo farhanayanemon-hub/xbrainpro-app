@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import colors, { fonts } from "@/constants/colors";
+import { playBack, playConfirm, playTap } from "@/lib/sfx";
 
 const c = colors.light;
 const RADIUS = colors.radius;
@@ -45,7 +46,10 @@ export function AppHeader({
       <View style={styles.headerRow}>
         {onBack ? (
           <Pressable
-            onPress={onBack}
+            onPress={() => {
+              playBack();
+              onBack();
+            }}
             hitSlop={12}
             style={styles.backBtn}
             testID="back-button"
@@ -112,6 +116,8 @@ export function Button({
       testID={testID}
       onPress={() => {
         if (isDisabled) return;
+        if (variant === "primary") playConfirm();
+        else playTap();
         if (Platform.OS !== "web") {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
@@ -193,6 +199,7 @@ export function Chip({
   return (
     <Pressable
       onPress={() => {
+        playTap();
         if (Platform.OS !== "web") {
           Haptics.selectionAsync();
         }

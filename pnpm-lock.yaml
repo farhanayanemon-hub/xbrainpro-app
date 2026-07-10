@@ -452,6 +452,9 @@ importers:
       expo-asset:
         specifier: ~12.0.13
         version: 12.0.13(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo-audio:
+        specifier: ~1.1.1
+        version: 1.1.1(expo-asset@12.0.13(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3))(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-file-system:
         specifier: ~19.0.23
         version: 19.0.23(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))
@@ -461,6 +464,9 @@ importers:
       expo-notifications:
         specifier: ~0.32.17
         version: 0.32.17(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo-screen-orientation:
+        specifier: ~9.0.9
+        version: 9.0.9(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))
       expo-secure-store:
         specifier: ~15.0.8
         version: 15.0.8(expo@54.0.35)
@@ -4132,6 +4138,14 @@ packages:
       react: '*'
       react-native: '*'
 
+  expo-audio@1.1.1:
+    resolution: {integrity: sha512-CPCpJ+0AEHdzWROc0f00Zh6e+irLSl2ALos/LPvxEeIcJw1APfBa4DuHPkL4CQCWsVe7EnUjFpdwpqsEUWcP0g==}
+    peerDependencies:
+      expo: '*'
+      expo-asset: '*'
+      react: '*'
+      react-native: '*'
+
   expo-blur@15.0.8:
     resolution: {integrity: sha512-rWyE1NBRZEu9WD+X+5l7gyPRszw7n12cW3IRNAb5i6KFzaBp8cxqT5oeaphJapqURvcqhkOZn2k5EtBSbsuU7w==}
     peerDependencies:
@@ -4281,6 +4295,12 @@ packages:
         optional: true
       react-server-dom-webpack:
         optional: true
+
+  expo-screen-orientation@9.0.9:
+    resolution: {integrity: sha512-UTU745XoqBvQJkZ820GTfMuOxlkppYqaeQ+x0wdu44cyrZiZugqe+egFF2+zC+SaxgAltU5EuO8GIj9xSF+YMw==}
+    peerDependencies:
+      expo: '*'
+      react-native: '*'
 
   expo-secure-store@15.0.8:
     resolution: {integrity: sha512-lHnzvRajBu4u+P99+0GEMijQMFCOYpWRO4dWsXSuMt77+THPIGjzNvVKrGSl6mMrLsfVaKL8BpwYZLGlgA+zAw==}
@@ -11333,6 +11353,13 @@ snapshots:
       - supports-color
       - typescript
 
+  expo-audio@1.1.1(expo-asset@12.0.13(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3))(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      expo: 54.0.35(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo-asset: 12.0.13(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0)
+
   expo-blur@15.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       expo: 54.0.35(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -11496,6 +11523,11 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
       - supports-color
+
+  expo-screen-orientation@9.0.9(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0)):
+    dependencies:
+      expo: 54.0.35(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      react-native: 0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0)
 
   expo-secure-store@15.0.8(expo@54.0.35):
     dependencies:

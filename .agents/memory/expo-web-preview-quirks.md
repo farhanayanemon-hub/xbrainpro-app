@@ -18,5 +18,11 @@ For the `xbrainpro-mobile` Expo web build, `screenshot type=app_preview` consist
 
 **How to verify a logged-in screen instead:** the canvas mobile iframe the user sees IS the dev build, so Metro hot-reload changes are visible to the user immediately — lean on their eyes for design feedback. For auth-gated screens, a dev-only bypass in `app/index.tsx` (`PREVIEW_PROFILE`, gated by `__DEV__ && Platform.OS==="web" && ?preview=lobby`) renders the lobby with a mock profile so it can be opened without login. Keep verification to typecheck + jest + code reasoning; do not trust a blank screenshot as evidence of a broken screen.
 
+## The mobile artifact canvas frame CAN be resized to landscape
+Despite the canvas skill saying artifact frames "cannot be freely resized (snap back to ratio)", resizing the `artifact:v3:artifacts/xbrainpro-mobile` iframe to a wide size (e.g. 960x460) via `applyCanvasActions` `resize` HELD — it did not snap back. This is the only way to preview a landscape mobile app on the canvas: the Expo web build renders to the iframe's viewport, so a portrait frame squishes a landscape layout. Resize the frame wide, then `presentArtifact`.
+
+## expo-audio setAudioModeAsync needs a FULL AudioMode object
+`setAudioModeAsync({ playsInSilentMode: true })` fails typecheck — AudioMode is not Partial. Must pass all fields: `playsInSilentMode`, `interruptionMode` (e.g. "mixWithOthers"), `allowsRecording`, `shouldPlayInBackground`, `shouldRouteThroughEarpiece`. For UI SFX: `createAudioPlayer(require("...wav"))` once, reuse, replay with `seekTo(0); play()`. wav is in Metro's default assetExts (the custom metro.config only appends glb/gltf, doesn't replace defaults). Wrap all audio in try/catch — sound is a nice-to-have, never crash the UI.
+
 ## expo-secure-store crashes on web
 `SecureStore.setItemAsync/getItemAsync/deleteItemAsync` throw `... is not a function` on the web platform. When an Expo app must also render in the web preview, gate secure-store behind `Platform.OS !== "web"` and fall back to `window.localStorage`. Applies to any token/secret persistence in a cross-platform Expo app.

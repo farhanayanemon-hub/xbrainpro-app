@@ -12,6 +12,7 @@ import { type PlayerProfile } from "@workspace/api-client-react";
 
 import colors, { fonts } from "@/constants/colors";
 import { absoluteApiUrl } from "@/lib/session";
+import { playBack, playConfirm, playTap } from "@/lib/sfx";
 import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
 import StorePanel from "@/components/lobby/StorePanel";
@@ -44,7 +45,13 @@ const MENU: MenuItem[] = [
 /** Angular Free Fire style menu tab: a skewed neon-edged plate with upright content. */
 function MenuTab({ item, onPress }: { item: MenuItem; onPress: () => void }) {
   return (
-    <Pressable style={styles.menuItem} onPress={onPress}>
+    <Pressable
+      style={styles.menuItem}
+      onPress={() => {
+        playTap();
+        onPress();
+      }}
+    >
       {({ pressed }) => (
         <>
           <View style={[styles.menuPlate, pressed && styles.menuPlatePressed]} />
@@ -162,7 +169,13 @@ export default function LobbyScreen({
 
       {/* Top bar */}
       <View style={styles.topBar}>
-        <Pressable style={styles.profileCard} onPress={onEditProfile}>
+        <Pressable
+          style={styles.profileCard}
+          onPress={() => {
+            playTap();
+            onEditProfile();
+          }}
+        >
           <View style={styles.avatarRing}>
             {photoUrl ? (
               <Image source={{ uri: photoUrl }} style={styles.avatar} />
@@ -195,14 +208,29 @@ export default function LobbyScreen({
           <View style={styles.topIcons}>
             <Pressable
               style={styles.iconBtn}
-              onPress={() => setFriendsOpen(true)}
+              onPress={() => {
+                playTap();
+                setFriendsOpen(true);
+              }}
             >
               <Text style={styles.iconBtnText}>👥</Text>
             </Pressable>
-            <Pressable style={styles.iconBtn} onPress={onEditProfile}>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => {
+                playTap();
+                onEditProfile();
+              }}
+            >
               <Text style={styles.iconBtnText}>⚙️</Text>
             </Pressable>
-            <Pressable style={styles.iconBtn} onPress={onLogout}>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => {
+                playBack();
+                onLogout();
+              }}
+            >
               <Text style={styles.iconBtnText}>⏻</Text>
             </Pressable>
           </View>
@@ -229,7 +257,10 @@ export default function LobbyScreen({
         </View>
 
         <Pressable
-          onPress={onPlay}
+          onPress={() => {
+            playConfirm();
+            onPlay();
+          }}
           style={({ pressed }) => [
             styles.startWrap,
             pressed && { transform: [{ scale: 0.97 }] },
@@ -264,7 +295,10 @@ export default function LobbyScreen({
                 <Text style={styles.drawerTitle}>FRIENDS</Text>
                 <Pressable
                   style={styles.drawerClose}
-                  onPress={() => setFriendsOpen(false)}
+                  onPress={() => {
+                    playBack();
+                    setFriendsOpen(false);
+                  }}
                 >
                   <Text style={styles.drawerCloseText}>✕</Text>
                 </Pressable>
@@ -311,7 +345,10 @@ export default function LobbyScreen({
               </Text>
               <Pressable
                 style={styles.modalBtn}
-                onPress={() => setComingSoon(null)}
+                onPress={() => {
+                  playTap();
+                  setComingSoon(null);
+                }}
               >
                 <Text style={styles.modalBtnText}>Got it</Text>
               </Pressable>
