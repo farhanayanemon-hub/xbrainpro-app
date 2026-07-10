@@ -4,6 +4,8 @@ import type { Group } from "three";
 import { Vector3 } from "three";
 
 import Avatar from "@/game/Avatar";
+import { resolveAvatar } from "@/game/assetResolver";
+import { DEFAULT_AVATAR_ID } from "@/game/avatar";
 import { labels } from "@/game/labels";
 import { remote } from "@/game/net";
 
@@ -24,6 +26,29 @@ function RemotePlaceholder({ color }: { color: string }) {
       </mesh>
     </>
   );
+}
+
+/**
+ * Keeps a failed remote avatar load from tearing down the shared canvas —
+ * falls back to the placeholder body instead.
+ */
+class RemoteAvatarBoundary extends React.Component<
+  { children: React.ReactNode; resetKey: string },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidUpdate(prev: { resetKey: string }) {
+    if (prev.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+  render() {
+    if (this.state.failed) return <RemotePlaceholder color="#3a4a6b" />;
+    return this.props.children;
+  }
 }
 
 /**
@@ -79,17 +104,24 @@ export default function RemotePlayer({ id }: { id: string }) {
   });
 
   const p0 = remote.get(id);
-  const avatarId = p0?.avatarId ?? "knight";
+  const avatarId = p0?.avatarId ?? DEFAULT_AVATAR_ID;
+  const src = resolveAvatar(avatarId);
 
   return (
     <group ref={group}>
-      <Suspense fallback={<RemotePlaceholder color="#3a4a6b" />}>
-        <Avatar
-          key={avatarId}
-          avatarId={avatarId}
-          getMotion={() => motion.current}
-        />
-      </Suspense>
+      <RemoteAvatarBoundary resetKey={avatarId}>
+        {src ? (
+          <Suspense fallback={<RemotePlaceholder color="#3a4a6b" />}>
+            <Avatar
+              key={avatarId}
+              avatarId={avatarId}
+              getMotion={() => motion.current}
+            />
+          </Suspense>
+        ) : (
+          <RemotePlaceholder color="#3a4a6b" />
+        )}
+      </RemoteAvatarBoundary>
     </group>
   );
 }

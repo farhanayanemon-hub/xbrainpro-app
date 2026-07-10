@@ -74,7 +74,7 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 function safeAvatarId(v: unknown): string {
-  return typeof v === "string" && /^[a-z0-9_]{1,32}$/i.test(v) ? v : "knight";
+  return typeof v === "string" && /^[a-z0-9_]{1,32}$/i.test(v) ? v : "ryan";
 }
 
 export function attachRealtime(server: Server): WebSocketServer {
@@ -174,7 +174,7 @@ export function attachRealtime(server: Server): WebSocketServer {
       userId: user.id,
       name: profileName,
       gender: profileGender,
-      avatarId: "knight",
+      avatarId: "ryan",
       x: 0,
       z: 8,
       h: 0,

@@ -46,6 +46,13 @@ export interface AssetManifest {
 const CACHE_KEY = "neura.assetManifest.v1";
 
 let inflight: Promise<AssetManifest | null> | null = null;
+/**
+ * Last manifest seen this session, kept synchronously so the 3D scene can
+ * resolve an avatar's CDN url during render (React render can't await). It's
+ * populated before the city scene mounts because `downloadResources` awaits
+ * `getManifest()` first.
+ */
+let lastManifest: AssetManifest | null = null;
 
 async function loadManifest(): Promise<AssetManifest | null> {
   try {
@@ -60,12 +67,16 @@ async function loadManifest(): Promise<AssetManifest | null> {
     } catch {
       // storage unavailable — non-fatal
     }
+    lastManifest = json;
     return json;
   } catch {
     // Offline / server down — fall back to the last manifest we saw.
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
-      if (raw) return JSON.parse(raw) as AssetManifest;
+      if (raw) {
+        lastManifest = JSON.parse(raw) as AssetManifest;
+        return lastManifest;
+      }
     } catch {
       // ignore
     }
@@ -74,10 +85,28 @@ async function loadManifest(): Promise<AssetManifest | null> {
 }
 
 /**
+ * Synchronous lookup of an avatar entry from the last-seen manifest. Returns
+ * undefined until the manifest has loaded once. Used by the avatar resolver.
+ */
+export function avatarEntrySync(id: string): AssetEntry | undefined {
+  return lastManifest?.assets.find(
+    (a) => a.category === "avatar" && a.id === id,
+  );
+}
+
+/**
  * Fetch the manifest, memoized for the session so avatar/model/texture
  * resolution all share one network round-trip. Pass `force` to bypass.
  */
 export function getManifest(force = false): Promise<AssetManifest | null> {
-  if (!inflight || force) inflight = loadManifest();
+  if (!inflight || force) {
+    inflight = loadManifest().then((m) => {
+      // Never cache a failure: if neither the network nor the on-disk cache
+      // yielded a manifest, drop the memo so the next call retries instead of
+      // leaving avatars/models stuck on placeholders for the whole session.
+      if (m === null) inflight = null;
+      return m;
+    });
+  }
   return inflight;
 }

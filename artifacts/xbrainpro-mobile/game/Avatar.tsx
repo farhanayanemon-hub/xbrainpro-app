@@ -10,16 +10,17 @@ import { game } from "@/game/store";
 
 /** World-unit height every avatar is normalized to. */
 const TARGET_HEIGHT = 1.8;
-const FADE = 0.18;
+const FADE = 0.22;
 const WALK_THRESHOLD = 0.12;
 const RUN_THRESHOLD = 0.78;
 
-type ClipName = "Idle" | "Walking_A" | "Running_A";
+type Motion = "idle" | "walk" | "run";
 
 /**
- * The player's animated avatar. Loads the selected KayKit character GLB,
+ * The player's animated avatar. Loads the selected realistic human GLB,
  * clones it (skeleton-aware), normalizes its height, and crossfades between
- * idle / walk / run clips based on the joystick input magnitude.
+ * idle / walk / run clips based on the joystick input magnitude. Clip names
+ * are matched case-insensitively so any rig (mixamo, KayKit, …) works.
  */
 export default function Avatar({
   avatarId,
@@ -58,17 +59,30 @@ export default function Avatar({
 
   const group = useRef<Group>(null);
   const { actions } = useAnimations(gltf.animations, group);
-  const current = useRef<ClipName>("Idle");
+
+  // Match the rig's clips to our idle/walk/run roles by name (case-insensitive)
+  // so we don't depend on exact clip labels across different character packs.
+  const clips = useMemo(() => {
+    const names = Object.keys(actions);
+    const find = (kw: string) =>
+      names.find((n) => n.toLowerCase().includes(kw));
+    return {
+      idle: find("idle") ?? names[0],
+      walk: find("walk") ?? find("idle") ?? names[0],
+      run: find("run") ?? find("walk") ?? names[0],
+    } as Record<Motion, string | undefined>;
+  }, [actions]);
+
+  const current = useRef<Motion>("idle");
 
   useEffect(() => {
-    const idle = actions.Idle;
-    if (!idle) return;
-    current.current = "Idle";
-    idle.reset().play();
+    current.current = "idle";
+    const idle = clips.idle ? actions[clips.idle] : undefined;
+    idle?.reset().play();
     return () => {
       for (const name of Object.keys(actions)) actions[name]?.stop();
     };
-  }, [actions]);
+  }, [actions, clips]);
 
   useFrame(() => {
     let mag: number;
@@ -78,17 +92,14 @@ export default function Avatar({
       const { x, y } = game.frozen ? { x: 0, y: 0 } : game.input;
       mag = Math.min(Math.hypot(x, y), 1);
     }
-    const next: ClipName =
-      mag > RUN_THRESHOLD
-        ? "Running_A"
-        : mag > WALK_THRESHOLD
-          ? "Walking_A"
-          : "Idle";
+    const next: Motion =
+      mag > RUN_THRESHOLD ? "run" : mag > WALK_THRESHOLD ? "walk" : "idle";
     if (next === current.current) return;
-    const from = actions[current.current];
-    const to = actions[next];
+    const fromName = clips[current.current];
+    const toName = clips[next];
+    const to = toName ? actions[toName] : undefined;
     if (!to) return;
-    from?.fadeOut(FADE);
+    if (fromName && fromName !== toName) actions[fromName]?.fadeOut(FADE);
     to.reset().fadeIn(FADE).play();
     current.current = next;
   });

@@ -1,93 +1,51 @@
 /**
  * Player avatar catalog + on-device persistence.
  *
- * All avatars are CC0 KayKit character packs (Adventurers + Skeletons),
- * stripped to the Idle / Walking_A / Running_A animation clips and
- * quantized, so the whole catalog stays under ~3MB.
+ * Avatars are realistic rigged humans (male "Ryan" + female "Maya") streamed
+ * on demand from the Cloudflare CDN and cached on-device — nothing large is
+ * bundled in the app. Each GLB carries Idle / Walk / Run clips.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export type AvatarGender = "male" | "female";
 
 export interface AvatarDef {
   id: string;
   name: string;
   tagline: string;
+  gender: AvatarGender;
   /** Accent color used on the picker card. */
   color: string;
-  /** Metro asset module for the GLB. */
-  src: number;
 }
 
 export const AVATARS: AvatarDef[] = [
   {
-    id: "knight",
-    name: "Knight",
-    tagline: "Armored & loyal",
-    color: "#8fb4ff",
-    src: require("../assets/models/avatars/knight.glb"),
+    id: "ryan",
+    name: "Ryan",
+    tagline: "Street-smart & bold",
+    gender: "male",
+    color: "#5b8cff",
   },
   {
-    id: "barbarian",
-    name: "Barbarian",
-    tagline: "Strong & fearless",
-    color: "#ffb36b",
-    src: require("../assets/models/avatars/barbarian.glb"),
-  },
-  {
-    id: "mage",
-    name: "Mage",
-    tagline: "Master of spells",
-    color: "#b78bff",
-    src: require("../assets/models/avatars/mage.glb"),
-  },
-  {
-    id: "rogue",
-    name: "Rogue",
-    tagline: "Quick & clever",
-    color: "#7be0a2",
-    src: require("../assets/models/avatars/rogue.glb"),
-  },
-  {
-    id: "rogue_hooded",
-    name: "Shadow",
-    tagline: "Hidden in the hood",
-    color: "#5fd4d0",
-    src: require("../assets/models/avatars/rogue_hooded.glb"),
-  },
-  {
-    id: "skeleton_warrior",
-    name: "Bone Warrior",
-    tagline: "Rattling & brave",
-    color: "#e6e0c8",
-    src: require("../assets/models/avatars/skeleton_warrior.glb"),
-  },
-  {
-    id: "skeleton_mage",
-    name: "Bone Mage",
-    tagline: "Spooky sorcery",
-    color: "#c9b8ff",
-    src: require("../assets/models/avatars/skeleton_mage.glb"),
-  },
-  {
-    id: "skeleton_rogue",
-    name: "Bone Rogue",
-    tagline: "Sneaky bones",
-    color: "#9fd8b1",
-    src: require("../assets/models/avatars/skeleton_rogue.glb"),
-  },
-  {
-    id: "skeleton_minion",
-    name: "Minion",
-    tagline: "Small but mighty",
-    color: "#f2a8c0",
-    src: require("../assets/models/avatars/skeleton_minion.glb"),
+    id: "maya",
+    name: "Maya",
+    tagline: "Bright & fearless",
+    gender: "female",
+    color: "#ff6fae",
   },
 ];
 
-export const DEFAULT_AVATAR_ID = "knight";
+export const DEFAULT_AVATAR_ID = "ryan";
 
 export const AVATAR_MAP: Record<string, AvatarDef> = Object.fromEntries(
   AVATARS.map((a) => [a.id, a]),
 );
+
+/** Default avatar id for a chosen gender. */
+export const GENDER_AVATAR: Record<AvatarGender, string> = {
+  male: "ryan",
+  female: "maya",
+};
 
 const STORAGE_KEY = "neura.avatarId";
 

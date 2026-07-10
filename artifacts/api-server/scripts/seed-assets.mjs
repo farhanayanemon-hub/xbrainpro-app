@@ -62,17 +62,8 @@ const textures = [
   ["paving", "textures/paving.jpg"],
   ["asphalt", "textures/asphalt.jpg"],
 ];
-const avatars = [
-  ["knight", "Knight", "Armored & loyal", "#8fb4ff"],
-  ["barbarian", "Barbarian", "Strong & fearless", "#ffb36b"],
-  ["mage", "Mage", "Master of spells", "#b78bff"],
-  ["rogue", "Rogue", "Quick & clever", "#7be0a2"],
-  ["rogue_hooded", "Shadow", "Hidden in the hood", "#5fd4d0"],
-  ["skeleton_warrior", "Bone Warrior", "Rattling & brave", "#e6e0c8"],
-  ["skeleton_mage", "Bone Mage", "Spooky sorcery", "#c9b8ff"],
-  ["skeleton_rogue", "Bone Rogue", "Sneaky bones", "#9fd8b1"],
-  ["skeleton_minion", "Minion", "Small but mighty", "#f2a8c0"],
-];
+// Avatars are seeded separately by seed-avatars.mjs (realistic humans
+// streamed from R2, not bundled in the mobile app).
 
 async function currentHash(id) {
   const { rows } = await pool.query("SELECT content_hash FROM game_assets WHERE id=$1", [id]);
@@ -117,9 +108,6 @@ async function main() {
   for (const [id, rel, meta] of models) await upsert(id, "model", rel, id, meta);
   console.log("Textures:");
   for (const [id, rel] of textures) await upsert(id, "texture", rel, id, {});
-  console.log("Avatars:");
-  for (const [id, name, tagline, color] of avatars)
-    await upsert(id, "avatar", `models/avatars/${id}.glb`, name, { name, tagline, color });
 
   // Bump manifest version so clients pick up the seeded catalog.
   await pool.query(

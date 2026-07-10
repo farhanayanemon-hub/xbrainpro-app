@@ -1,5 +1,6 @@
+import { avatarEntrySync } from "@/game/assetManifest";
 import { assetUri } from "@/game/assetUri";
-import { AVATAR_MAP, DEFAULT_AVATAR_ID } from "@/game/avatar";
+import { DEFAULT_AVATAR_ID } from "@/game/avatar";
 import {
   MODEL_SOURCES,
   TEXTURE_SOURCES,
@@ -32,9 +33,16 @@ export function resolveTexture(id: TextureId): string {
   return resolved.get(id) ?? assetUri(TEXTURE_SOURCES[id]);
 }
 
+/**
+ * Resolve an avatar id to a loadable GLB uri. Order:
+ *   1. a cached on-device copy (`file://`) once downloaded, else
+ *   2. the manifest's same-origin CDN url (streamed + browser/disk cached).
+ * Unknown ids fall back to the default avatar. Returns "" when the manifest
+ * isn't available yet — callers render a placeholder body until it resolves.
+ */
 export function resolveAvatar(id: string): string {
-  const cdn = resolved.get(id);
-  if (cdn) return cdn;
-  const def = AVATAR_MAP[id] ?? AVATAR_MAP[DEFAULT_AVATAR_ID];
-  return assetUri(def.src);
+  const cached = resolved.get(id);
+  if (cached) return cached;
+  const entry = avatarEntrySync(id) ?? avatarEntrySync(DEFAULT_AVATAR_ID);
+  return entry?.url ?? "";
 }

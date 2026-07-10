@@ -4,6 +4,7 @@ import type { Group } from "three";
 import { Vector3 } from "three";
 
 import Avatar from "@/game/Avatar";
+import { resolveAvatar } from "@/game/assetResolver";
 import { TALK_DISTANCE } from "@/game/npcs";
 import { game } from "@/game/store";
 import { world, type Interactable } from "@/game/worldMap";
@@ -174,12 +175,18 @@ export default function Player({
     }
   });
 
+  const src = resolveAvatar(avatarId);
+
   return (
     <group ref={group} position={[game.player.x, 0, game.player.z]}>
       <AvatarBoundary resetKey={avatarId}>
-        <Suspense fallback={<PlaceholderBody />}>
-          <Avatar key={avatarId} avatarId={avatarId} />
-        </Suspense>
+        {src ? (
+          <Suspense fallback={<PlaceholderBody />}>
+            <Avatar key={avatarId} avatarId={avatarId} />
+          </Suspense>
+        ) : (
+          <PlaceholderBody />
+        )}
       </AvatarBoundary>
     </group>
   );

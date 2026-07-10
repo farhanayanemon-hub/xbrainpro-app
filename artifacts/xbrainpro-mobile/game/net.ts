@@ -7,6 +7,7 @@
  * interpolates each avatar toward its latest target; React subscribes to the
  * roster so avatars mount/unmount as players join/leave.
  */
+import { DEFAULT_AVATAR_ID } from "@/game/avatar";
 import { labels } from "@/game/labels";
 
 export interface RemotePlayer {
@@ -215,7 +216,7 @@ function open(token: string): void {
     lastAvatar = "";
     const s = selfGetter?.();
     ws?.send(
-      JSON.stringify({ t: "join", avatarId: s?.avatarId ?? "knight" }),
+      JSON.stringify({ t: "join", avatarId: s?.avatarId ?? DEFAULT_AVATAR_ID }),
     );
     startSendLoop();
   };

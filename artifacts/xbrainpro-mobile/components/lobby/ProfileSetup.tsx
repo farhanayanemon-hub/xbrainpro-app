@@ -18,16 +18,11 @@ import {
 
 import colors, { fonts } from "@/constants/colors";
 import { absoluteApiUrl } from "@/lib/session";
-import { saveAvatarId } from "@/game/avatar";
+import { GENDER_AVATAR, saveAvatarId, type AvatarGender } from "@/game/avatar";
 
 const C = colors.dark;
 
-type Gender = "male" | "female";
-
-const GENDER_AVATAR: Record<Gender, string> = {
-  male: "knight",
-  female: "mage",
-};
+type Gender = AvatarGender;
 
 export default function ProfileSetup({
   initial,
