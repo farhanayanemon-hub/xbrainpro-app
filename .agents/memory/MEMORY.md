@@ -6,6 +6,7 @@
 - [React Query auth loading loop](react-query-auth-loop.md) — auth gate + child sharing an errored query needs `retryOnMount: false` or it loops forever on 401.
 - [OpenRouter free-tier reliability](openrouter-free-tier.md) — 402 = no credits; model is env-driven via OPENROUTER_MODEL; free models need JSON repair + retries + per-user lock.
 - [Dev vs prod databases diverge](dev-prod-databases.md) — helium dev DB vs Supabase prod DB; apply schema pushes and seed users to BOTH.
+- [Realtime WS lifecycle](realtime-ws-lifecycle.md) — attach close/error before async auth + readyState guard, or dead sockets leak ghost players.
 - [Neura City world swap](neura-city-world-swap.md) — mutable `world` (bound/colliders/camDist/interactables) must swap as a set between city/interior; guard against late map-load clobber; homes are server-driven by plot.
 - [Settings cache consistency](settings-cache-consistency.md) — version/ETag keys must bypass the 30s settings cache and bump via atomic DB upsert.
 - [R3F GLB assets in Expo](r3f-glb-assets.md) — metro assetExts + drei useGLTF with module IDs; drei platform split via moduleSuffixes; headless bundle/GLB verify recipe.

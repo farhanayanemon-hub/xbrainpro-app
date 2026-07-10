@@ -117,20 +117,40 @@ export function attachRealtime(server: Server): WebSocketServer {
       token = null;
     }
 
-    const user = await resolveUserByToken(token);
-    if (!user) {
-      send(ws, { t: "error", reason: "unauthorized" });
-      ws.close(4001, "unauthorized");
+    // The whole auth/profile path talks to the DB. Any transient failure here
+    // must NOT reject this async listener (that would surface as an unhandled
+    // rejection and can take down the whole process). Contain it and close the
+    // one bad socket instead.
+    let user: Awaited<ReturnType<typeof resolveUserByToken>>;
+    let profileName = "Citizen";
+    let profileGender = "male";
+    try {
+      user = await resolveUserByToken(token);
+      if (!user) {
+        send(ws, { t: "error", reason: "unauthorized" });
+        ws.close(4001, "unauthorized");
+        return;
+      }
+
+      const [profile] = await db
+        .select({
+          displayName: playerProfilesTable.displayName,
+          gender: playerProfilesTable.gender,
+        })
+        .from(playerProfilesTable)
+        .where(eq(playerProfilesTable.userId, user.id));
+      profileName = profile?.displayName?.slice(0, 24) || "Citizen";
+      profileGender = profile?.gender || "male";
+    } catch (err) {
+      logger.error({ err }, "Realtime auth/profile lookup failed");
+      send(ws, { t: "error", reason: "server_error" });
+      try {
+        ws.close(1011, "server error");
+      } catch {
+        /* ignore */
+      }
       return;
     }
-
-    const [profile] = await db
-      .select({
-        displayName: playerProfilesTable.displayName,
-        gender: playerProfilesTable.gender,
-      })
-      .from(playerProfilesTable)
-      .where(eq(playerProfilesTable.userId, user.id));
 
     // The socket may have closed while we were awaiting auth/profile. Bail
     // before registering so we never leave a dead entry in the map.
@@ -152,8 +172,8 @@ export function attachRealtime(server: Server): WebSocketServer {
       ws,
       id,
       userId: user.id,
-      name: profile?.displayName?.slice(0, 24) || "Citizen",
-      gender: profile?.gender || "male",
+      name: profileName,
+      gender: profileGender,
       avatarId: "knight",
       x: 0,
       z: 8,
