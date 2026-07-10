@@ -1,0 +1,74 @@
+NEURA CITY — FULL GAME PLAN (XBrainPro)
+Repo: github.com/farhanayanemon-hub/xbrainpro-app
+Live: xbrainpro.com (Railway auto-deploys from GitHub main; game at /play)
+Agent must first read: replit.md + .agents/memory/ folder
+
+WORK ORDER: Task A & B first (any order) → Task C (needs A+B) → Task D (needs B+C)
+
+=====================================================
+TASK A: LANDSCAPE MODE + 360° CAMERA + BETTER GRAPHICS
+=====================================================
+- Lock the game to LANDSCAPE orientation on phone (Expo Go) and web (/play)
+- Add camera rotation: dragging on the right half of the screen rotates the
+  camera 360° around the player (yaw + a little pitch)
+- Joystick movement becomes camera-relative: player walks toward where the
+  camera faces, can turn and walk in ANY direction (not just straight)
+- Improve graphics: better lighting, shadows, sky, anti-aliasing, fog —
+  but keep mobile frame rate smooth
+Key files: artifacts/xbrainpro-mobile/app/index.tsx, game/WorldScene.tsx,
+game/store.ts, components/Joystick.tsx, game/GameCanvas.web.tsx, game/CityScene.tsx
+
+=====================================================
+TASK B: ACCOUNTS + LOBBY + PROFILES
+=====================================================
+- App opens to a LOBBY first (not straight into the city), like other
+  online games: profile card + menu tiles: Play, Shop, Events, Maps
+  (Shop/Events/Maps = "coming soon" placeholder pages for now)
+- New players REGISTER with email + password; login persists between launches
+- After signup: choose MALE or FEMALE (maps to avatar set), then fill
+  profile details (display name, bio) that other players can see
+- PROFILE PHOTO upload; public profile API so others can view profiles
+- Backend: extend existing Express auth + Drizzle schema.
+  IMPORTANT: push schema changes to BOTH dev DB (Replit) and prod DB (Supabase)
+Key files: artifacts/api-server/src/routes/index.ts, src/lib/auth.ts,
+artifacts/xbrainpro-mobile/app/index.tsx, game/avatar.ts
+
+=====================================================
+TASK C: PERSONAL HOUSES + OPEN CITY + MOVING CARS
+=====================================================
+- Every registered player gets ONE house in the city
+- Player can enter the house; inside there is a BED; interacting with the
+  bed plays a sleep sequence (screen fade / rest + wake up)
+- The WHOLE map is walkable in every direction with proper edge collision
+  (start with a SMALL city; expand later via the server-driven world map)
+- CARS drive on the roads in simple loops
+Key files: artifacts/xbrainpro-mobile/game/worldMap.ts, game/cityLayout.ts,
+game/CityScene.tsx, game/WorldScene.tsx, artifacts/api-server/src/routes/index.ts
+
+=====================================================
+TASK D: MULTIPLAYER — SEE OTHER PLAYERS
+=====================================================
+- ONLY registered/logged-in players exist in the city
+- When two players are online together, each sees the other's avatar
+  (with display name overhead) walking around LIVE
+- WebSocket on the existing Express server: session auth, position
+  broadcast, rate limiting; client interpolates movement for smoothness
+- Must work on Expo Go AND on deployed /play (WebSocket through Railway)
+Key files: artifacts/api-server/src/app.ts, src/routes/index.ts,
+artifacts/xbrainpro-mobile/game/WorldScene.tsx, game/Avatar.tsx, game/store.ts
+
+=====================================================
+NEW ACCOUNT SETUP NOTES
+=====================================================
+1. New Replit account → Create App → Import from GitHub →
+   farhanayanemon-hub/xbrainpro-app
+2. Re-add these secrets (copy values from old account FIRST):
+   GITHUB_TOKEN, HOSTINGER_API_TOKEN, OPENROUTER_API_KEY,
+   RAILWAY_API_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL
+3. Run pnpm install; create a NEW dev PostgreSQL DB in Replit and push the
+   Drizzle schema; seed a dev admin user
+4. 4 workflows: api-server, xbrainpro-web, xbrainpro-mobile (expo), mockup-sandbox
+5. Production = Railway (NOT Replit deploy). Push to GitHub main via API
+   using GITHUB_TOKEN → Railway auto-builds (~3 min) → xbrainpro.com
+6. Prod DB = Supabase — don't touch its schema unless asked
+7. User speaks Banglish — reply in Banglish, simple explanations
