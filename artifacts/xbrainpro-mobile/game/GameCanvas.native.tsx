@@ -19,6 +19,7 @@ export default function GameCanvas({
       style={{ flex: 1 }}
       camera={camera}
       shadows
+      gl={{ alpha: true }}
       onCreated={() => onReady?.()}
     >
       {children}

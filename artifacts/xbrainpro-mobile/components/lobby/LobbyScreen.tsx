@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -33,12 +34,37 @@ type MenuItem = {
 };
 
 const MENU: MenuItem[] = [
+  { key: "store", icon: "🛍️", label: "STORE", action: "store", ready: true },
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character", ready: true },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends", ready: true },
-  { key: "store", icon: "🛍️", label: "STORE", action: "store", ready: true },
   { key: "events", icon: "🎉", label: "EVENTS", action: "soon", ready: false },
   { key: "maps", icon: "🗺️", label: "MAPS", action: "soon", ready: false },
 ];
+
+/** Angular Free Fire style menu tab: a skewed neon-edged plate with upright content. */
+function MenuTab({ item, onPress }: { item: MenuItem; onPress: () => void }) {
+  return (
+    <Pressable style={styles.menuItem} onPress={onPress}>
+      {({ pressed }) => (
+        <>
+          <View style={[styles.menuPlate, pressed && styles.menuPlatePressed]} />
+          <View style={styles.menuEdge} />
+          <View style={styles.menuContent}>
+            <View style={styles.menuIconBox}>
+              <Text style={styles.menuIcon}>{item.icon}</Text>
+            </View>
+            <Text style={styles.menuLabel}>{item.label}</Text>
+            {!item.ready && (
+              <View style={styles.soonBadge}>
+                <Text style={styles.soonBadgeText}>SOON</Text>
+              </View>
+            )}
+          </View>
+        </>
+      )}
+    </Pressable>
+  );
+}
 
 export default function LobbyScreen({
   profile,
@@ -131,77 +157,92 @@ export default function LobbyScreen({
 
   return (
     <View style={styles.root}>
-      {/* 3D character hero */}
+      {/* 3D character hero + neon stage backdrop */}
       <LobbyAvatarStage avatarId={heroAvatarId} fallbackPhotoUrl={photoUrl} />
-
-      {/* Legibility scrims so UI stays readable over the 3D scene */}
-      <View style={styles.scrimTop} pointerEvents="none" />
-      <View style={styles.scrimBottom} pointerEvents="none" />
 
       {/* Top bar */}
       <View style={styles.topBar}>
         <Pressable style={styles.profileCard} onPress={onEditProfile}>
-          {photoUrl ? (
-            <Image source={{ uri: photoUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarLetter}>{initialLetter}</Text>
+          <View style={styles.avatarRing}>
+            {photoUrl ? (
+              <Image source={{ uri: photoUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarLetter}>{initialLetter}</Text>
+              </View>
+            )}
+            <View style={styles.levelChip}>
+              <Text style={styles.levelChipText}>1</Text>
             </View>
-          )}
+          </View>
           <View style={{ maxWidth: 150 }}>
             <Text style={styles.playerName} numberOfLines={1}>
               {profile.displayName}
             </Text>
-            <Text style={styles.playerMeta} numberOfLines={1}>
-              {profile.gender === "female" ? "♀" : "♂"} Citizen
-            </Text>
+            <View style={styles.statusRow}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.playerMeta} numberOfLines={1}>
+                Citizen
+              </Text>
+            </View>
           </View>
         </Pressable>
 
-        <Text style={styles.brand}>✦ NEURA CITY</Text>
-
         <View style={styles.topRight}>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => setFriendsOpen(true)}
-          >
-            <Text style={styles.iconBtnText}>👥</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={onEditProfile}>
-            <Text style={styles.iconBtnText}>⚙️</Text>
-          </Pressable>
-          <Pressable style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Log out</Text>
-          </Pressable>
+          <Text style={styles.brand}>
+            NEURA<Text style={styles.brandAccent}> CITY</Text>
+          </Text>
+          <View style={styles.topIcons}>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => setFriendsOpen(true)}
+            >
+              <Text style={styles.iconBtnText}>👥</Text>
+            </Pressable>
+            <Pressable style={styles.iconBtn} onPress={onEditProfile}>
+              <Text style={styles.iconBtnText}>⚙️</Text>
+            </Pressable>
+            <Pressable style={styles.iconBtn} onPress={onLogout}>
+              <Text style={styles.iconBtnText}>⏻</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
-      {/* Left vertical menu */}
+      {/* Left vertical angular menu */}
       <View style={styles.leftMenu}>
         {MENU.map((item) => (
-          <Pressable
-            key={item.key}
-            style={styles.menuItem}
-            onPress={() => handleMenu(item)}
-          >
-            <Text style={styles.menuIcon}>{item.icon}</Text>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            {!item.ready && (
-              <View style={styles.soonBadge}>
-                <Text style={styles.soonBadgeText}>SOON</Text>
-              </View>
-            )}
-          </Pressable>
+          <MenuTab key={item.key} item={item} onPress={() => handleMenu(item)} />
         ))}
       </View>
 
-      {/* Bottom-right START */}
+      {/* Bottom-right mode card + START */}
       <View style={styles.bottomRight}>
         <View style={styles.modeCard}>
-          <Text style={styles.modeLabel}>OPEN WORLD</Text>
-          <Text style={styles.modeSub}>Neura City</Text>
+          <View style={styles.modeIcon}>
+            <Text style={{ fontSize: 18 }}>🌆</Text>
+          </View>
+          <View>
+            <Text style={styles.modeLabel}>OPEN WORLD</Text>
+            <Text style={styles.modeSub}>Neura City</Text>
+          </View>
         </View>
-        <Pressable style={styles.startBtn} onPress={onPlay}>
+
+        <Pressable
+          onPress={onPlay}
+          style={({ pressed }) => [
+            styles.startWrap,
+            pressed && { transform: [{ scale: 0.97 }] },
+          ]}
+        >
+          <View style={styles.startSkew}>
+            <LinearGradient
+              colors={[C.primary, C.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
           <Text style={styles.startText}>START</Text>
         </Pressable>
       </View>
@@ -284,22 +325,6 @@ export default function LobbyScreen({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
-  scrimTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 110,
-    backgroundColor: "rgba(6,8,20,0.55)",
-  },
-  scrimBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 130,
-    backgroundColor: "rgba(6,8,20,0.45)",
-  },
 
   topBar: {
     position: "absolute",
@@ -307,7 +332,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 10,
   },
@@ -315,84 +340,132 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(16,19,42,0.8)",
+    backgroundColor: "rgba(16,19,42,0.78)",
     borderWidth: 1,
     borderColor: C.cardBorder,
-    borderRadius: 14,
-    padding: 8,
-    paddingRight: 14,
+    borderRadius: 12,
+    padding: 7,
+    paddingRight: 16,
   },
-  avatar: { width: 40, height: 40, borderRadius: 10 },
+  avatarRing: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: C.primary,
+    padding: 1,
+  },
+  avatar: { width: "100%", height: "100%", borderRadius: 8 },
   avatarFallback: {
     backgroundColor: C.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarLetter: { fontFamily: fonts.heading, fontSize: 18, color: "#fff" },
+  levelChip: {
+    position: "absolute",
+    bottom: -7,
+    alignSelf: "center",
+    backgroundColor: C.primary,
+    borderRadius: 6,
+    minWidth: 18,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#10142a",
+  },
+  levelChipText: { fontFamily: fonts.bold, fontSize: 9, color: "#fff" },
   playerName: { fontFamily: fonts.headingSemi, fontSize: 15, color: "#fff" },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  onlineDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#38e08a",
+  },
   playerMeta: {
     fontFamily: fonts.medium,
     fontSize: 11,
     color: C.mutedForeground,
-    marginTop: 1,
   },
+
+  topRight: { alignItems: "flex-end", gap: 8 },
   brand: {
     fontFamily: fonts.heading,
-    fontSize: 18,
+    fontSize: 20,
     letterSpacing: 3,
     color: "#fff",
-    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowColor: "rgba(0,0,0,0.55)",
     textShadowRadius: 8,
   },
-  topRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  brandAccent: { color: C.primary },
+  topIcons: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(16,19,42,0.8)",
     borderWidth: 1,
     borderColor: C.cardBorder,
   },
-  iconBtnText: { fontSize: 18 },
-  logoutBtn: {
-    backgroundColor: "rgba(16,19,42,0.8)",
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  logoutText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    color: C.mutedForeground,
-  },
+  iconBtnText: { fontSize: 17, color: "#fff" },
 
   leftMenu: {
     position: "absolute",
-    left: 16,
-    top: 90,
-    bottom: 90,
+    left: 14,
+    top: 92,
+    bottom: 74,
     justifyContent: "center",
-    gap: 10,
+    gap: 11,
   },
   menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "rgba(16,19,42,0.82)",
+    width: 196,
+    height: 46,
+    justifyContent: "center",
+  },
+  menuPlate: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(20,24,52,0.9)",
     borderWidth: 1,
     borderColor: C.cardBorder,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    width: 178,
+    borderRadius: 6,
+    transform: [{ skewX: "-11deg" }],
   },
-  menuIcon: { fontSize: 18, width: 22, textAlign: "center" },
+  menuPlatePressed: {
+    backgroundColor: "rgba(255,92,138,0.22)",
+    borderColor: C.primary,
+  },
+  menuEdge: {
+    position: "absolute",
+    left: 6,
+    top: 6,
+    bottom: 6,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: C.primary,
+    transform: [{ skewX: "-11deg" }],
+  },
+  menuContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    paddingLeft: 20,
+    paddingRight: 12,
+  },
+  menuIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(139,92,246,0.2)",
+  },
+  menuIcon: { fontSize: 15 },
   menuLabel: {
-    fontFamily: fonts.headingSemi,
+    fontFamily: fonts.heading,
     fontSize: 14,
     letterSpacing: 1.5,
     color: "#fff",
@@ -400,8 +473,8 @@ const styles = StyleSheet.create({
   soonBadge: {
     marginLeft: "auto",
     backgroundColor: C.accent,
-    borderRadius: 7,
-    paddingHorizontal: 6,
+    borderRadius: 5,
+    paddingHorizontal: 5,
     paddingVertical: 2,
   },
   soonBadgeText: {
@@ -414,23 +487,33 @@ const styles = StyleSheet.create({
   bottomRight: {
     position: "absolute",
     right: 20,
-    bottom: 24,
+    bottom: 22,
     alignItems: "flex-end",
-    gap: 10,
+    gap: 12,
   },
   modeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     backgroundColor: "rgba(16,19,42,0.82)",
     borderWidth: 1,
     borderColor: C.cardBorder,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: "flex-end",
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  modeIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(139,92,246,0.18)",
   },
   modeLabel: {
     fontFamily: fonts.headingSemi,
     fontSize: 13,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     color: "#fff",
   },
   modeSub: {
@@ -439,23 +522,32 @@ const styles = StyleSheet.create({
     color: C.mutedForeground,
     marginTop: 1,
   },
-  startBtn: {
-    backgroundColor: C.primary,
-    borderWidth: 1,
-    borderColor: C.primaryBorder,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 54,
+
+  startWrap: {
+    width: 216,
+    height: 62,
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: C.primary,
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.7,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  startSkew: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 10,
+    overflow: "hidden",
+    transform: [{ skewX: "-11deg" }],
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.35)",
   },
   startText: {
     fontFamily: fonts.heading,
-    fontSize: 26,
-    letterSpacing: 4,
+    fontSize: 28,
+    letterSpacing: 5,
     color: "#fff",
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowRadius: 6,
   },
 
   drawerBackdrop: {

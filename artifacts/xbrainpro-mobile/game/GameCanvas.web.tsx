@@ -83,6 +83,7 @@ export default function GameCanvas({
         camera={camera}
         dpr={[1, 2]}
         shadows
+        gl={{ alpha: true }}
         onCreated={() => onReady?.()}
       >
         {children}

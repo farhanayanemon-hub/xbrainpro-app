@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, View } from "react-native";
 import type { Group } from "three";
@@ -25,6 +26,32 @@ function Spin({
     if (ref.current) ref.current.rotation.y += dt * speed;
   });
   return <group ref={ref}>{children}</group>;
+}
+
+/**
+ * Static neon backdrop rendered behind the 3D character. It gives the lobby a
+ * "game stage" feel (dusk gradient + spotlight glow + floor) so the screen
+ * never looks like an empty app — even before the 3D avatar streams in or if
+ * WebGL is unavailable.
+ */
+function Backdrop() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient
+        colors={["#0a0c1c", "#111634", "#2a1c46"]}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Spotlight glow behind the character */}
+      <View style={styles.glowOuter} />
+      <View style={styles.glowInner} />
+      {/* Floor light band */}
+      <LinearGradient
+        colors={["transparent", "rgba(255,92,138,0.16)", "rgba(139,92,246,0.10)"]}
+        style={styles.floor}
+      />
+    </View>
+  );
 }
 
 /**
@@ -81,56 +108,92 @@ export default function LobbyAvatarStage({
     </View>
   ) : null;
 
-  if (!ready) {
-    return (
-      <View style={styles.stage}>
-        {photo}
-        <ActivityIndicator color={C.primary} style={styles.spinner} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.stage}>
-      <GameCanvas camera={{ position: [0, 1.15, 4.4], fov: 40 }} fallback={photo}>
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[3, 6, 4]} intensity={1.7} castShadow />
-        <directionalLight position={[-4, 3, -2]} intensity={0.9} color={C.primary} />
-        <pointLight position={[0, 2.2, 2.6]} intensity={0.7} color={C.accent} />
-        <Spin>
-          <React.Suspense fallback={null}>
-            <Avatar avatarId={avatarId} getMotion={() => 0} />
-          </React.Suspense>
-          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-            <circleGeometry args={[1.15, 48]} />
-            <meshStandardMaterial color="#0d1230" />
-          </mesh>
-          <mesh position={[0, 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[1.12, 1.28, 48]} />
-            <meshStandardMaterial
-              color={C.primary}
-              emissive={C.primary}
-              emissiveIntensity={1.5}
-            />
-          </mesh>
-        </Spin>
-      </GameCanvas>
+      <Backdrop />
+      {ready ? (
+        <GameCanvas
+          camera={{ position: [0, 1.15, 4.4], fov: 40 }}
+          fallback={photo}
+        >
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[3, 6, 4]} intensity={1.8} castShadow />
+          <directionalLight
+            position={[-4, 3, -2]}
+            intensity={1.0}
+            color={C.primary}
+          />
+          <pointLight position={[0, 2.2, 2.6]} intensity={0.8} color={C.accent} />
+          <Spin>
+            <React.Suspense fallback={null}>
+              <Avatar avatarId={avatarId} getMotion={() => 0} />
+            </React.Suspense>
+            <mesh
+              position={[0, 0.02, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              receiveShadow
+            >
+              <circleGeometry args={[1.15, 48]} />
+              <meshStandardMaterial color="#0d1230" />
+            </mesh>
+            <mesh position={[0, 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[1.12, 1.28, 48]} />
+              <meshStandardMaterial
+                color={C.primary}
+                emissive={C.primary}
+                emissiveIntensity={1.6}
+              />
+            </mesh>
+          </Spin>
+        </GameCanvas>
+      ) : (
+        <View style={styles.loadingWrap}>
+          {photo}
+          <ActivityIndicator color={C.primary} style={styles.spinner} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stage: {
+  stage: { ...StyleSheet.absoluteFillObject, backgroundColor: C.background },
+  loadingWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
   },
-  spinner: { position: "absolute", bottom: 60 },
+  spinner: { position: "absolute", bottom: 70 },
+  glowOuter: {
+    position: "absolute",
+    alignSelf: "center",
+    top: "18%",
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    backgroundColor: "rgba(255,92,138,0.10)",
+  },
+  glowInner: {
+    position: "absolute",
+    alignSelf: "center",
+    top: "26%",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "rgba(139,92,246,0.14)",
+  },
+  floor: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "34%",
+  },
   photoWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "flex-end",
     paddingBottom: 40,
   },
-  photo: { width: "60%", height: "80%", opacity: 0.9 },
+  photo: { width: "58%", height: "78%", opacity: 0.92 },
 });

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -30,10 +31,33 @@ function errStatus(e: unknown): number | undefined {
   return (e as { status?: number })?.status;
 }
 
+/**
+ * Dev-only lobby preview: open the web build with `?preview=lobby` to render the
+ * lobby with a mock profile (no login), so the UI can be reviewed on its own.
+ * Compiled out of production and never active on native.
+ */
+const PREVIEW_PROFILE: PlayerProfile | null =
+  __DEV__ &&
+  Platform.OS === "web" &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("preview") === "lobby"
+    ? {
+        userId: 0,
+        displayName: "Nova",
+        gender: "female",
+        hasPhoto: false,
+        photoUrl: null,
+      }
+    : null;
+
 export default function Gate() {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>("loading");
-  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  const [stage, setStage] = useState<Stage>(
+    PREVIEW_PROFILE ? "lobby" : "loading",
+  );
+  const [profile, setProfile] = useState<PlayerProfile | null>(
+    PREVIEW_PROFILE,
+  );
 
   // Restore the session on launch: token → user → profile → lobby.
   const restore = useCallback(async () => {
@@ -74,6 +98,7 @@ export default function Gate() {
   }, []);
 
   useEffect(() => {
+    if (PREVIEW_PROFILE) return; // skip auth in preview mode
     let cancelled = false;
     void (async () => {
       if (!cancelled) await restore();
