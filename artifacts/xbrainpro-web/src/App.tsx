@@ -6,23 +6,9 @@ import { useGetCurrentUser } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
-// Components
-import AppLayout from "@/components/layout/app-layout";
-
-// Pages
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
-import Register from "@/pages/register";
-import Onboarding from "@/pages/onboarding";
-import Paths from "@/pages/paths";
-import Start from "@/pages/start";
-import Dashboard from "@/pages/dashboard";
-import Program from "@/pages/program";
-import Progress from "@/pages/progress";
-import Coach from "@/pages/coach";
-import Reminders from "@/pages/reminders";
-import Settings from "@/pages/settings";
 import Admin from "@/pages/admin";
 
 const queryClient = new QueryClient({
@@ -41,14 +27,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
-    
-    const publicRoutes = ["/", "/login", "/register"];
-    const isPublicRoute = publicRoutes.includes(location);
-
-    if (!user && !isPublicRoute) {
-      setLocation("/login");
-    } else if (user && isPublicRoute && location !== "/") {
-      setLocation("/");
+    if (user && location === "/login") {
+      setLocation("/admin");
     }
   }, [user, isLoading, location, setLocation]);
 
@@ -56,7 +36,9 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-        <p className="mt-4 text-sm text-muted-foreground font-medium animate-pulse">Initializing Neural Link...</p>
+        <p className="mt-4 text-sm text-muted-foreground font-medium animate-pulse">
+          Connecting to Neura City...
+        </p>
       </div>
     );
   }
@@ -65,44 +47,13 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { data: user } = useGetCurrentUser();
-  const [location] = useLocation();
-
-  if (!user) {
-    return (
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="/admin" component={Admin} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/admin" component={Admin} />
-        {/* If logged in but not onboarded, redirect to onboarding */}
-        {!user.onboarded && location !== "/onboarding" && <Route path="*" component={() => {
-           window.location.href = "/onboarding";
-           return null;
-        }} />}
-        
-        <Route path="/" component={user.hasProgram ? Dashboard : Paths} />
-        <Route path="/onboarding" component={Onboarding} />
-        <Route path="/paths" component={Paths} />
-        <Route path="/start" component={Start} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/program" component={Program} />
-        <Route path="/progress" component={Progress} />
-        <Route path="/coach" component={Coach} />
-        <Route path="/reminders" component={Reminders} />
-        <Route path="/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
+      <Route path="/admin" component={Admin} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

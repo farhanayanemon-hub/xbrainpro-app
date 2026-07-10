@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
-import { db, usersTable, programsTable } from "@workspace/db";
+import { db, usersTable, worldObjectsTable } from "@workspace/db";
 import { requireAdmin } from "../lib/auth";
 import { getSetting, setSetting, SETTING_KEYS } from "../lib/settings";
 import { DEFAULT_MODEL, resolveModel } from "../lib/ai";
+import { getWorldVersion } from "./world";
 
 const router: IRouter = Router();
 
@@ -55,12 +56,14 @@ router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
   const [userCount] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(usersTable);
-  const [programCount] = await db
+  const [objectCount] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(programsTable);
+    .from(worldObjectsTable);
+  const worldVersion = await getWorldVersion();
   res.json({
     users: userCount?.count ?? 0,
-    programs: programCount?.count ?? 0,
+    worldObjects: objectCount?.count ?? 0,
+    worldVersion,
   });
 });
 

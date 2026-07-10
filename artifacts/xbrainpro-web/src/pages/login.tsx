@@ -61,8 +61,8 @@ export default function Login() {
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent mx-auto mb-4 flex items-center justify-center text-white font-bold font-heading text-xl shadow-glow">
             X
           </div>
-          <h1 className="text-3xl font-heading font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground text-sm">Resume your neural reprogramming.</p>
+          <h1 className="text-3xl font-heading font-bold text-white mb-2">Admin Access</h1>
+          <p className="text-muted-foreground text-sm">Log in to manage Neura City.</p>
         </div>
 
         <Form {...form}>
@@ -74,7 +74,7 @@ export default function Login() {
                 <FormItem>
                   <FormLabel className="text-white/70 ml-1">Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="architect@xbrain.pro" className="h-12 bg-black/50 border-white/10 text-white rounded-xl focus-visible:ring-primary focus-visible:border-primary" {...field} />
+                    <Input placeholder="admin@xbrainpro.com" className="h-12 bg-black/50 border-white/10 text-white rounded-xl focus-visible:ring-primary focus-visible:border-primary" {...field} />
                   </FormControl>
                   <FormMessage className="ml-1" />
                 </FormItem>
@@ -106,9 +106,8 @@ export default function Login() {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Don't have an access code?{" "}
-            <Link href="/register" className="text-primary hover:text-white transition-colors font-medium">
-              Initialize Profile
+            <Link href="/" className="text-primary hover:text-white transition-colors font-medium">
+              Back to Neura City
             </Link>
           </p>
         </div>
