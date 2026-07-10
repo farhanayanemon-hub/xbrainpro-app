@@ -1,8 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Image,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -13,6 +16,7 @@ import { type PlayerProfile } from "@workspace/api-client-react";
 import colors, { fonts } from "@/constants/colors";
 import { absoluteApiUrl } from "@/lib/session";
 import { playBack, playConfirm, playTap } from "@/lib/sfx";
+import AmbientFX from "@/components/lobby/AmbientFX";
 import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
 import StorePanel from "@/components/lobby/StorePanel";
@@ -25,6 +29,7 @@ import {
 } from "@/game/avatar";
 
 const C = colors.dark;
+const NATIVE = Platform.OS !== "web";
 
 type MenuItem = {
   key: string;
@@ -42,33 +47,223 @@ const MENU: MenuItem[] = [
   { key: "maps", icon: "🗺️", label: "MAPS", action: "soon", ready: false },
 ];
 
-/** Angular Free Fire style menu tab: a skewed neon-edged plate with upright content. */
-function MenuTab({ item, onPress }: { item: MenuItem; onPress: () => void }) {
+/* -------------------------------------------------------------------------- */
+/* Animated menu tab — slides in from the left with a stagger, springs on tap  */
+/* -------------------------------------------------------------------------- */
+
+function MenuTab({
+  item,
+  index,
+  onPress,
+}: {
+  item: MenuItem;
+  index: number;
+  onPress: () => void;
+}) {
+  const enter = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 480,
+      delay: 260 + index * 75,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: NATIVE,
+    }).start();
+  }, [enter, index]);
+
+  const translateX = enter.interpolate({ inputRange: [0, 1], outputRange: [-70, 0] });
+
+  return (
+    <Animated.View
+      style={{ opacity: enter, transform: [{ translateX }, { scale }] }}
+    >
+      <Pressable
+        style={styles.menuItem}
+        onPressIn={() =>
+          Animated.spring(scale, {
+            toValue: 0.95,
+            useNativeDriver: NATIVE,
+            speed: 40,
+            bounciness: 0,
+          }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(scale, {
+            toValue: 1,
+            useNativeDriver: NATIVE,
+            speed: 20,
+            bounciness: 8,
+          }).start()
+        }
+        onPress={() => {
+          playTap();
+          onPress();
+        }}
+      >
+        {({ pressed }) => (
+          <>
+            <View style={[styles.menuPlate, pressed && styles.menuPlatePressed]} />
+            <View style={styles.menuEdge} />
+            <View style={styles.menuContent}>
+              <View style={styles.menuIconBox}>
+                <Text style={styles.menuIcon}>{item.icon}</Text>
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              {!item.ready && (
+                <View style={styles.soonBadge}>
+                  <Text style={styles.soonBadgeText}>SOON</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* START button — breathing glow, shine sweep, press-scale                    */
+/* -------------------------------------------------------------------------- */
+
+function StartButton({ onPress }: { onPress: () => void }) {
+  const glow = useRef(new Animated.Value(0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: 1300,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: NATIVE,
+        }),
+        Animated.timing(glow, {
+          toValue: 0,
+          duration: 1300,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: NATIVE,
+        }),
+      ]),
+    );
+    const shineLoop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1400),
+        Animated.timing(shine, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: NATIVE,
+        }),
+        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: NATIVE }),
+      ]),
+    );
+    glowLoop.start();
+    shineLoop.start();
+    return () => {
+      glowLoop.stop();
+      shineLoop.stop();
+    };
+  }, [glow, shine]);
+
+  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] });
+  const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const shineX = shine.interpolate({ inputRange: [0, 1], outputRange: [-120, 240] });
+  const shineOpacity = shine.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0.8, 0],
+  });
+
   return (
     <Pressable
-      style={styles.menuItem}
+      onPressIn={() =>
+        Animated.spring(scale, {
+          toValue: 0.95,
+          useNativeDriver: NATIVE,
+          speed: 40,
+          bounciness: 0,
+        }).start()
+      }
+      onPressOut={() =>
+        Animated.spring(scale, {
+          toValue: 1,
+          useNativeDriver: NATIVE,
+          speed: 18,
+          bounciness: 10,
+        }).start()
+      }
+      onPress={() => {
+        playConfirm();
+        onPress();
+      }}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        {/* Pulsing glow halo behind the button */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.startGlow,
+            { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+          ]}
+        />
+        <View style={styles.startWrap}>
+          <View style={styles.startSkew}>
+            <LinearGradient
+              colors={[C.primary, C.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* Shine sweep */}
+            <Animated.View
+              style={[
+                styles.startShine,
+                { opacity: shineOpacity, transform: [{ translateX: shineX }, { skewX: "-12deg" }] },
+              ]}
+            />
+          </View>
+          <View style={styles.startInner}>
+            <Text style={styles.startText}>START</Text>
+            <Text style={styles.startChevrons}>▶▶</Text>
+          </View>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Small resource pill (coins / gems) — Free Fire style HUD                    */
+/* -------------------------------------------------------------------------- */
+
+function ResourcePill({
+  icon,
+  value,
+  tint,
+  onPress,
+}: {
+  icon: string;
+  value: string;
+  tint: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={styles.pill}
       onPress={() => {
         playTap();
         onPress();
       }}
     >
-      {({ pressed }) => (
-        <>
-          <View style={[styles.menuPlate, pressed && styles.menuPlatePressed]} />
-          <View style={styles.menuEdge} />
-          <View style={styles.menuContent}>
-            <View style={styles.menuIconBox}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
-            </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            {!item.ready && (
-              <View style={styles.soonBadge}>
-                <Text style={styles.soonBadgeText}>SOON</Text>
-              </View>
-            )}
-          </View>
-        </>
-      )}
+      <Text style={styles.pillIcon}>{icon}</Text>
+      <Text style={styles.pillValue}>{value}</Text>
+      <View style={[styles.pillPlus, { backgroundColor: tint }]}>
+        <Text style={styles.pillPlusText}>+</Text>
+      </View>
     </Pressable>
   );
 }
@@ -97,6 +292,38 @@ export default function LobbyScreen({
   // the sheet is open). Falls back to the equipped look when the store closes.
   const [previewId, setPreviewId] = useState(equippedId);
   const [ownedIds, setOwnedIds] = useState<string[]>([]);
+
+  // Entrance choreography: top bar drops in, bottom panel scales up.
+  const enter = useRef(new Animated.Value(0)).current;
+  const online = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 620,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: NATIVE,
+    }).start();
+
+    const onlineLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(online, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: NATIVE,
+        }),
+        Animated.timing(online, {
+          toValue: 0,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: NATIVE,
+        }),
+      ]),
+    );
+    onlineLoop.start();
+    return () => onlineLoop.stop();
+  }, [enter, online]);
 
   // Show the same character the player last used in the city, and load which
   // looks they've unlocked in the Store.
@@ -162,13 +389,27 @@ export default function LobbyScreen({
     }
   };
 
+  const topBarTranslate = enter.interpolate({ inputRange: [0, 1], outputRange: [-46, 0] });
+  const bottomScale = enter.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
+  const bottomTranslate = enter.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
+  const onlineScale = online.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const onlineOpacity = online.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] });
+
   return (
     <View style={styles.root}>
       {/* 3D character hero + neon stage backdrop */}
       <LobbyAvatarStage avatarId={heroAvatarId} fallbackPhotoUrl={photoUrl} />
 
+      {/* Animated atmosphere (embers, glows, vignette, light sweep) */}
+      <AmbientFX />
+
       {/* Top bar */}
-      <View style={styles.topBar}>
+      <Animated.View
+        style={[
+          styles.topBar,
+          { opacity: enter, transform: [{ translateY: topBarTranslate }] },
+        ]}
+      >
         <Pressable
           style={styles.profileCard}
           onPress={() => {
@@ -188,15 +429,32 @@ export default function LobbyScreen({
               <Text style={styles.levelChipText}>1</Text>
             </View>
           </View>
-          <View style={{ maxWidth: 150 }}>
+          <View style={{ maxWidth: 168 }}>
             <Text style={styles.playerName} numberOfLines={1}>
               {profile.displayName}
             </Text>
             <View style={styles.statusRow}>
-              <View style={styles.onlineDot} />
+              <View style={styles.onlineDotWrap}>
+                <Animated.View
+                  style={[
+                    styles.onlinePulse,
+                    { transform: [{ scale: onlineScale }], opacity: onlineOpacity },
+                  ]}
+                />
+                <View style={styles.onlineDot} />
+              </View>
               <Text style={styles.playerMeta} numberOfLines={1}>
-                Citizen
+                Citizen · Lv 1
               </Text>
+            </View>
+            {/* XP progress */}
+            <View style={styles.xpTrack}>
+              <LinearGradient
+                colors={[C.primary, C.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.xpFill}
+              />
             </View>
           </View>
         </Pressable>
@@ -205,7 +463,9 @@ export default function LobbyScreen({
           <Text style={styles.brand}>
             NEURA<Text style={styles.brandAccent}> CITY</Text>
           </Text>
-          <View style={styles.topIcons}>
+          <View style={styles.hudRow}>
+            <ResourcePill icon="🪙" value="0" tint="#f5b942" onPress={openStore} />
+            <ResourcePill icon="💎" value="0" tint={C.accent} onPress={openStore} />
             <Pressable
               style={styles.iconBtn}
               onPress={() => {
@@ -235,17 +495,27 @@ export default function LobbyScreen({
             </Pressable>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Left vertical angular menu */}
       <View style={styles.leftMenu}>
-        {MENU.map((item) => (
-          <MenuTab key={item.key} item={item} onPress={() => handleMenu(item)} />
+        {MENU.map((item, i) => (
+          <MenuTab
+            key={item.key}
+            item={item}
+            index={i}
+            onPress={() => handleMenu(item)}
+          />
         ))}
       </View>
 
       {/* Bottom-right mode card + START */}
-      <View style={styles.bottomRight}>
+      <Animated.View
+        style={[
+          styles.bottomRight,
+          { opacity: enter, transform: [{ translateY: bottomTranslate }, { scale: bottomScale }] },
+        ]}
+      >
         <View style={styles.modeCard}>
           <View style={styles.modeIcon}>
             <Text style={{ fontSize: 18 }}>🌆</Text>
@@ -254,29 +524,14 @@ export default function LobbyScreen({
             <Text style={styles.modeLabel}>OPEN WORLD</Text>
             <Text style={styles.modeSub}>Neura City</Text>
           </View>
+          <View style={styles.modeLive}>
+            <View style={styles.modeLiveDot} />
+            <Text style={styles.modeLiveText}>LIVE</Text>
+          </View>
         </View>
 
-        <Pressable
-          onPress={() => {
-            playConfirm();
-            onPlay();
-          }}
-          style={({ pressed }) => [
-            styles.startWrap,
-            pressed && { transform: [{ scale: 0.97 }] },
-          ]}
-        >
-          <View style={styles.startSkew}>
-            <LinearGradient
-              colors={[C.primary, C.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-          <Text style={styles.startText}>START</Text>
-        </Pressable>
-      </View>
+        <StartButton onPress={onPlay} />
+      </Animated.View>
 
       {/* Friends drawer */}
       {friendsOpen && (
@@ -377,22 +632,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(16,19,42,0.78)",
+    backgroundColor: "rgba(16,19,42,0.82)",
     borderWidth: 1,
     borderColor: C.cardBorder,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 7,
-    paddingRight: 16,
+    paddingRight: 18,
   },
   avatarRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: C.primary,
     padding: 1,
   },
-  avatar: { width: "100%", height: "100%", borderRadius: 8 },
+  avatar: { width: "100%", height: "100%", borderRadius: 9 },
   avatarFallback: {
     backgroundColor: C.accent,
     alignItems: "center",
@@ -414,7 +669,20 @@ const styles = StyleSheet.create({
   },
   levelChipText: { fontFamily: fonts.bold, fontSize: 9, color: "#fff" },
   playerName: { fontFamily: fonts.headingSemi, fontSize: 15, color: "#fff" },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  onlineDotWrap: {
+    width: 8,
+    height: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  onlinePulse: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#38e08a",
+  },
   onlineDot: {
     width: 7,
     height: 7,
@@ -426,6 +694,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.mutedForeground,
   },
+  xpTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  xpFill: { height: "100%", width: "22%", borderRadius: 3 },
 
   topRight: { alignItems: "flex-end", gap: 8 },
   brand: {
@@ -433,33 +709,61 @@ const styles = StyleSheet.create({
     fontSize: 20,
     letterSpacing: 3,
     color: "#fff",
-    textShadowColor: "rgba(0,0,0,0.55)",
-    textShadowRadius: 8,
+    textShadowColor: "rgba(255,92,138,0.5)",
+    textShadowRadius: 12,
   },
   brandAccent: { color: C.primary },
+  hudRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(16,19,42,0.85)",
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    borderRadius: 999,
+    paddingLeft: 8,
+    paddingRight: 4,
+    height: 30,
+  },
+  pillIcon: { fontSize: 13 },
+  pillValue: { fontFamily: fonts.bold, fontSize: 12, color: "#fff", minWidth: 12 },
+  pillPlus: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillPlusText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: "#fff",
+    marginTop: -1,
+  },
   topIcons: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconBtn: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(16,19,42,0.8)",
+    backgroundColor: "rgba(16,19,42,0.85)",
     borderWidth: 1,
     borderColor: C.cardBorder,
   },
-  iconBtnText: { fontSize: 17, color: "#fff" },
+  iconBtnText: { fontSize: 15, color: "#fff" },
 
   leftMenu: {
     position: "absolute",
     left: 14,
-    top: 92,
-    bottom: 74,
+    top: 96,
+    bottom: 78,
     justifyContent: "center",
     gap: 11,
   },
   menuItem: {
-    width: 196,
+    width: 200,
     height: 46,
     justifyContent: "center",
   },
@@ -532,10 +836,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(16,19,42,0.82)",
+    backgroundColor: "rgba(16,19,42,0.85)",
     borderWidth: 1,
     borderColor: C.cardBorder,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 7,
     paddingHorizontal: 12,
   },
@@ -559,10 +863,41 @@ const styles = StyleSheet.create({
     color: C.mutedForeground,
     marginTop: 1,
   },
+  modeLive: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: 6,
+    backgroundColor: "rgba(56,224,138,0.14)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  modeLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#38e08a",
+  },
+  modeLiveText: {
+    fontFamily: fonts.bold,
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#38e08a",
+  },
 
+  startGlow: {
+    position: "absolute",
+    top: -10,
+    left: -6,
+    right: -6,
+    bottom: -10,
+    borderRadius: 20,
+    backgroundColor: C.primary,
+  },
   startWrap: {
-    width: 216,
-    height: 62,
+    width: 224,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: C.primary,
@@ -576,7 +911,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     transform: [{ skewX: "-11deg" }],
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  startShine: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 46,
+    backgroundColor: "rgba(255,255,255,0.55)",
+  },
+  startInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   startText: {
     fontFamily: fonts.heading,
@@ -585,6 +932,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     textShadowColor: "rgba(0,0,0,0.35)",
     textShadowRadius: 6,
+  },
+  startChevrons: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 2,
   },
 
   drawerBackdrop: {
