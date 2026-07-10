@@ -9,6 +9,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AvatarPicker from "@/components/AvatarPicker";
+import CameraControl from "@/components/CameraControl";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Hud from "@/components/Hud";
 import Joystick from "@/components/Joystick";
@@ -142,6 +143,9 @@ export default function NeuraCity() {
           </React.Suspense>
         </GameCanvas>
       </ErrorBoundary>
+
+      {/* right-half drag surface rotates the camera */}
+      <CameraControl />
 
       {/* joystick bottom-left */}
       <View style={[styles.joystickWrap, { bottom: 40 + insets.bottom }]}>

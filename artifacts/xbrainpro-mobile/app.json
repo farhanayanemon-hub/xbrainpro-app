@@ -3,7 +3,7 @@
     "name": "Neura City",
     "slug": "neura-city",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/images/icon.png",
     "scheme": "neura-city",
     "userInterfaceStyle": "dark",

@@ -98,8 +98,13 @@ export default function Player({
 
     if (moving) {
       const step = SPEED * mag * delta;
-      const dirX = ix / (mag || 1);
-      const dirZ = -iy / (mag || 1);
+      // Camera-relative movement: rotate the joystick vector by the camera yaw
+      // so pushing "up" always walks toward where the camera faces.
+      const lx = ix / (mag || 1);
+      const lz = -iy / (mag || 1);
+      const yaw = game.cam.yaw;
+      const dirX = lx * Math.cos(yaw) + lz * Math.sin(yaw);
+      const dirZ = -lx * Math.sin(yaw) + lz * Math.cos(yaw);
       let nx = game.player.x + dirX * step;
       let nz = game.player.z + dirZ * step;
       nx = Math.max(-world.bound, Math.min(world.bound, nx));
@@ -120,8 +125,15 @@ export default function Player({
       g.rotation.y += diff * Math.min(1, delta * 12);
     }
 
-    // follow camera
-    camTarget.current.set(game.player.x, 6.2, game.player.z + 9.5);
+    // orbit follow camera (yaw 360°, pitch clamped by the control surface)
+    const dist = 11;
+    const { yaw: cy, pitch } = game.cam;
+    const horiz = dist * Math.cos(pitch);
+    camTarget.current.set(
+      game.player.x + Math.sin(cy) * horiz,
+      1.4 + dist * Math.sin(pitch),
+      game.player.z + Math.cos(cy) * horiz,
+    );
     state.camera.position.lerp(
       camTarget.current,
       1 - Math.pow(0.0005, delta),

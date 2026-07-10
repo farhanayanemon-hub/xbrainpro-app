@@ -35,15 +35,15 @@ export default function WorldScene({
         mieCoefficient={0.005}
         mieDirectionalG={0.8}
       />
-      <hemisphereLight args={["#bcd8ff", "#8c9a72", 0.75]} />
-      <ambientLight intensity={0.2} />
+      <hemisphereLight args={["#bcd8ff", "#8c9a72", 0.85]} />
+      <ambientLight intensity={0.22} />
       <directionalLight
         castShadow
         position={SUN_POSITION}
-        intensity={1.9}
+        intensity={2.1}
         color="#fff2dd"
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-left={-36}
         shadow-camera-right={36}
         shadow-camera-top={36}

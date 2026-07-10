@@ -10,7 +10,12 @@ export const game = {
   player: { x: 0, z: 8, heading: 0 },
   /** When true the loop ignores input (chat / pause open). */
   frozen: false,
+  /** Orbit camera around the player: yaw in radians, pitch clamped. */
+  cam: { yaw: 0, pitch: 0.52 },
 };
+
+export const CAM_PITCH_MIN = 0.18;
+export const CAM_PITCH_MAX = 1.05;
 
 export function resetInput() {
   game.input.x = 0;
