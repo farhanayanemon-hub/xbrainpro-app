@@ -11,3 +11,4 @@
 - [Settings cache consistency](settings-cache-consistency.md) — version/ETag keys must bypass the 30s settings cache and bump via atomic DB upsert.
 - [R3F GLB assets in Expo](r3f-glb-assets.md) — metro assetExts + drei useGLTF with module IDs; drei platform split via moduleSuffixes; headless bundle/GLB verify recipe.
 - [R2 asset delivery](r2-asset-delivery.md) — stream game assets through api-server (creds can't set bucket CORS); never presigned/direct R2 URLs.
+- [Friends presence & join](friends-presence-join.md) — online != joinable (hidden friends have null position); gate Join on position; requests via displayName + onConflictDoNothing.

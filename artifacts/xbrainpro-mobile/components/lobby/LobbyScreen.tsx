@@ -12,6 +12,7 @@ import { type PlayerProfile } from "@workspace/api-client-react";
 
 import colors, { fonts } from "@/constants/colors";
 import { absoluteApiUrl } from "@/lib/session";
+import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 
 const C = colors.dark;
 
@@ -35,11 +36,13 @@ export default function LobbyScreen({
   onPlay,
   onEditProfile,
   onLogout,
+  onJoinFriend,
 }: {
   profile: PlayerProfile;
   onPlay: () => void;
   onEditProfile: () => void;
   onLogout: () => void;
+  onJoinFriend: (target: JoinTarget) => void;
 }) {
   const [comingSoon, setComingSoon] = useState<Tile | null>(null);
 
@@ -103,6 +106,8 @@ export default function LobbyScreen({
             </Pressable>
           ))}
         </View>
+
+        <FriendsPanel onJoinFriend={onJoinFriend} />
       </ScrollView>
 
       {comingSoon && (

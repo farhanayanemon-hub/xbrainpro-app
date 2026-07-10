@@ -168,6 +168,12 @@ export default function Gate() {
       onPlay={() => router.push("/city")}
       onEditProfile={() => setStage("editing")}
       onLogout={handleLogout}
+      onJoinFriend={(target) =>
+        router.push({
+          pathname: "/city",
+          params: { sx: String(target.x), sz: String(target.z) },
+        })
+      }
     />
   );
 }

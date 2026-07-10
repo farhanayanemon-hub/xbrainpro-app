@@ -77,10 +77,35 @@ function safeAvatarId(v: unknown): string {
   return typeof v === "string" && /^[a-z0-9_]{1,32}$/i.test(v) ? v : "ryan";
 }
 
+/**
+ * Live presence registry, shared with the (same-process) REST layer so the
+ * friends API can report who is online and where they are standing right now.
+ * Set once when the WebSocket server is attached.
+ */
+let liveClients: Map<string, Client> | null = null;
+
+/** True when the user currently has an open city socket. */
+export function isUserOnline(userId: number): boolean {
+  return liveClients?.has(`u${userId}`) ?? false;
+}
+
+/**
+ * The user's latest city position, or null if they're offline or hidden
+ * (inside a private home). Used to spawn a friend nearby on "Join".
+ */
+export function getUserPresence(
+  userId: number,
+): { x: number; z: number; h: number } | null {
+  const c = liveClients?.get(`u${userId}`);
+  if (!c || !c.visible) return null;
+  return { x: c.x, z: c.z, h: c.h };
+}
+
 export function attachRealtime(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/ws" });
   // Keyed by public id so a reconnecting user replaces their old socket.
   const clients = new Map<string, Client>();
+  liveClients = clients;
 
   function broadcast(msg: unknown, exceptId?: string): void {
     const data = JSON.stringify(msg);

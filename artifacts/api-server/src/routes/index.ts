@@ -6,6 +6,7 @@ import npcRouter from "./npc";
 import adminRouter from "./admin";
 import worldRouter from "./world";
 import assetsRouter from "./assets";
+import friendsRouter from "./friends";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(npcRouter);
 router.use(adminRouter);
 router.use(worldRouter);
 router.use(assetsRouter);
+router.use(friendsRouter);
 
 export default router;

@@ -11,3 +11,4 @@ export * from "./chat";
 export * from "./settings";
 export * from "./world";
 export * from "./gameAssets";
+export * from "./friendships";

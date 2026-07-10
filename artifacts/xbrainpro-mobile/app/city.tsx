@@ -14,7 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AvatarPicker from "@/components/AvatarPicker";
@@ -94,6 +94,22 @@ export default function NeuraCity() {
   // Mirrors `inside` for use inside effect closures that shouldn't clobber the
   // interior's runtime world state if an async map load resolves late.
   const insideRef = useRef(false);
+
+  // "Join a friend" deep link: drop the player next to the friend's live
+  // position (with a small offset so they don't overlap). Applied once on
+  // mount, before the scene reads game.player, so the first frame spawns right.
+  const { sx, sz } = useLocalSearchParams<{ sx?: string; sz?: string }>();
+  const spawnApplied = useRef(false);
+  if (!spawnApplied.current) {
+    spawnApplied.current = true;
+    const fx = Number(sx);
+    const fz = Number(sz);
+    if (Number.isFinite(fx) && Number.isFinite(fz)) {
+      game.player.x = fx + 1.4;
+      game.player.z = fz + 1.4;
+      game.player.heading = Math.atan2(fx - game.player.x, fz - game.player.z);
+    }
+  }
 
   // My house comes from the live server map (by plot); the bundled HOUSES is
   // only a fallback so prompts/teleports never desync from rendered houses.
