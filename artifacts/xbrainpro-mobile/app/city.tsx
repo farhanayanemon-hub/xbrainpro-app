@@ -36,6 +36,7 @@ import {
 } from "@/game/worldMap";
 import WorldScene from "@/game/WorldScene";
 import { loadToken } from "@/lib/session";
+import { getCurrentUser } from "@workspace/api-client-react";
 
 export default function NeuraCity() {
   const router = useRouter();
@@ -56,13 +57,27 @@ export default function NeuraCity() {
 
   const userPickedAvatar = useRef(false);
 
-  // Route guard: no session → send back to the lobby/login gate.
-  // Prevents deep-linking straight into the game without an account.
+  // Route guard: no/invalid session → send back to the lobby/login gate.
+  // Prevents deep-linking straight into the game without a valid account.
   useEffect(() => {
     let cancelled = false;
-    loadToken().then((token) => {
-      if (!cancelled && !token) router.replace("/");
-    });
+    void (async () => {
+      const token = await loadToken();
+      if (cancelled) return;
+      if (!token) {
+        router.replace("/");
+        return;
+      }
+      try {
+        await getCurrentUser();
+      } catch (e) {
+        // Only bounce on an auth failure; keep the player in-city on transient
+        // network/server errors so a hiccup doesn't kick them out mid-session.
+        if (!cancelled && (e as { status?: number })?.status === 401) {
+          router.replace("/");
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };
