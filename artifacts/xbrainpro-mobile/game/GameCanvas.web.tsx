@@ -30,8 +30,13 @@ function usePortraitOnTouch(): boolean {
     const mq = window.matchMedia("(orientation: portrait)");
     const update = () => setPortrait(mq.matches);
     update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+    // Older iOS Safari only supports addListener/removeListener.
+    mq.addListener(update);
+    return () => mq.removeListener(update);
   }, []);
   return portrait;
 }
