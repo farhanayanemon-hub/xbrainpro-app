@@ -41,14 +41,18 @@ function usePortraitOnTouch(): boolean {
   return portrait;
 }
 
+type CameraProps = { position: [number, number, number]; fov: number };
+
 export default function GameCanvas({
   children,
   onReady,
   fallback = null,
+  camera = { position: [0, 6.5, 17], fov: 55 },
 }: {
   children: React.ReactNode;
   onReady?: () => void;
   fallback?: React.ReactNode;
+  camera?: CameraProps;
 }) {
   const supported = useMemo(supportsWebgl, []);
   const portrait = usePortraitOnTouch();
@@ -76,7 +80,7 @@ export default function GameCanvas({
     <>
       <Canvas
         style={{ flex: 1 }}
-        camera={{ position: [0, 6.5, 17], fov: 55 }}
+        camera={camera}
         dpr={[1, 2]}
         shadows
         onCreated={() => onReady?.()}
