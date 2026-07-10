@@ -4,6 +4,7 @@ import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { Box3, Vector3 } from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
+import { assetUri } from "@/game/assetUri";
 import { AVATAR_MAP, DEFAULT_AVATAR_ID } from "@/game/avatar";
 import { useAnimations, useGLTF } from "@/game/drei";
 import { game } from "@/game/store";
@@ -23,7 +24,7 @@ type ClipName = "Idle" | "Walking_A" | "Running_A";
  */
 export default function Avatar({ avatarId }: { avatarId: string }) {
   const def = AVATAR_MAP[avatarId] ?? AVATAR_MAP[DEFAULT_AVATAR_ID];
-  const gltf = useGLTF(def.src as unknown as string) as unknown as {
+  const gltf = useGLTF(assetUri(def.src)) as unknown as {
     scene: Object3D;
     animations: AnimationClip[];
   };
