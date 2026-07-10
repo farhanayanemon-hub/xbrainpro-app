@@ -1,0 +1,38 @@
+This is XBrainPro — a pnpm monorepo for "Neura City", a 3D multiplayer city game.
+Please get it running and continue development.
+
+ARCHITECTURE
+- pnpm monorepo. Artifacts:
+  - artifacts/xbrainpro-mobile — Expo app (the game), also web-exported to /play
+  - artifacts/xbrainpro-web — marketing/web frontend
+  - artifacts/api-server — Express server: serves the API + the web build + /play as ONE service
+- Production: live at xbrainpro.com via Railway, deployed as a single Express service
+  (web uses relative /api, so API + web + /play must stay one service).
+- GitHub: farhanayanemon-hub/xbrainpro-app, branch main.
+
+DATABASES
+- Development uses a local/dev Postgres; production uses Supabase.
+- These two databases DIVERGE — any schema push or seed data must be applied to BOTH.
+- Prod DB access is via the SUPABASE_* secrets.
+
+SECRETS (must exist in this account's Secrets panel, exact names)
+GITHUB_TOKEN, HOSTINGER_API_TOKEN, OPENROUTER_API_KEY, RAILWAY_API_TOKEN,
+SUPABASE_URL, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY
+
+REALTIME MULTIPLAYER (latest feature, Task #28)
+- Players see each other move in the city in real time via a WebSocket at /ws on the
+  same Express server (token auth via ?token=). Protocol: welcome/snapshot/join/leave/state.
+- Server: artifacts/api-server/src/lib/realtime.ts (+ resolveUserByToken in src/lib/auth.ts).
+- Client: artifacts/xbrainpro-mobile/game/net.ts, game/RemotePlayer.tsx,
+  components/PlayerLabels.tsx, wired in app/city.tsx.
+
+GETTING STARTED
+1. Confirm all secrets above are present.
+2. Install deps (pnpm) and start the workflows for api-server, xbrainpro-mobile, xbrainpro-web.
+3. Read .agents/memory/MEMORY.md — it has important durable notes (dev vs prod DB,
+   Railway single-service deploy, Expo web quirks, OpenRouter free-tier, realtime WS lifecycle).
+
+USER PREFERENCES
+- I speak Banglish — reply in Banglish, keep explanations simple (I'm non-technical).
+- After EVERY task: push to GitHub main, verify the Railway deploy at xbrainpro.com,
+  and give me a fresh migration prompt like this one.
