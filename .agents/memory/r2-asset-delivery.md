@@ -32,3 +32,15 @@ streams the object bytes from R2 (`getObject` in `lib/r2.ts`). The manifest's
 **How to apply:** never switch game-asset delivery back to presigned/direct R2
 URLs unless a real Cloudflare API token is added and bucket CORS is configured.
 Keep asset `url`s same-origin through the api-server.
+
+## Zone-scoped, on-demand loading
+
+Assets carry a `meta.zone` (models/textures default `"city"`, avatars are global
+`"*"`). The client downloads **only the entered zone's** assets — spawn `"city"`
+up front (progress bar), other zones (house `"interior"`, future maps) on entry
+via `ensureZoneCached(zone)`; avatars via `ensureAvatarCached` on selection. Do
+NOT reintroduce a "download the whole catalog at startup" step — that was
+rejected in review as violating on-demand loading. The game currently has one
+populated zone (city) by design; interior/other zones are the extension point.
+Web `assetCache.web.ts` prefetches (`fetch(url)`) so the progress bar reflects
+real work and warms the browser cache.

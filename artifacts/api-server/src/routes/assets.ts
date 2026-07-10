@@ -137,7 +137,17 @@ router.get("/assets/manifest", async (req, res): Promise<void> => {
       size: r.size,
       mime: r.mimeType,
       version: r.version,
-      meta: r.meta ?? {},
+      // `zone` lets the client fetch only the assets for the zone the player is
+      // entering (spawn city up front, interiors/other zones on demand) instead
+      // of the whole catalog. Models/textures default to the "city" spawn zone;
+      // avatars are global ("*") and downloaded on selection, not per zone.
+      meta: {
+        ...((r.meta as Record<string, unknown> | null) ?? {}),
+        zone:
+          ((r.meta as Record<string, unknown> | null)?.zone as
+            | string
+            | undefined) ?? (r.category === "avatar" ? "*" : "city"),
+      },
     }))
   );
 

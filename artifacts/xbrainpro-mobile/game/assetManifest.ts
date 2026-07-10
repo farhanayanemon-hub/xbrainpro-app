@@ -3,9 +3,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { absoluteApiUrl } from "@/lib/session";
 
 /**
- * Runtime asset manifest fetched from the API. The server serves every game
- * asset from Cloudflare R2 with short-lived presigned download URLs; the
- * `version` bumps whenever an admin uploads/replaces/deletes an asset so
+ * Runtime asset manifest fetched from the API. The server streams every game
+ * asset from Cloudflare R2 through its own origin (`/api/assets/file/:id?h=`),
+ * so the `url` below is a same-origin, content-hashed, immutable download link.
+ * The `version` bumps whenever an admin uploads/replaces/deletes an asset so
  * clients know to re-fetch.
  */
 export type AssetCategory = "model" | "texture" | "avatar";
@@ -15,7 +16,7 @@ export interface AssetEntry {
   category: AssetCategory;
   slot: string | null;
   label: string;
-  /** Short-lived presigned GET url (expires ~7 days). */
+  /** Same-origin, content-hashed download url served by the API from R2. */
   url: string;
   /** Content hash — stable cache key on disk. */
   hash: string;
@@ -23,6 +24,17 @@ export interface AssetEntry {
   mime: string;
   version: number;
   meta: Record<string, unknown>;
+}
+
+/**
+ * Which zone an asset belongs to. Models/textures live in a zone (the spawn
+ * "city", a house "interior", a future map, …) and are only downloaded when
+ * the player enters that zone. Avatars are global ("*") and fetched on
+ * selection. Defaults to "city" so a manifest without zones still works.
+ */
+export function assetZone(entry: AssetEntry): string {
+  const z = entry.meta?.zone;
+  return typeof z === "string" && z ? z : "city";
 }
 
 export interface AssetManifest {

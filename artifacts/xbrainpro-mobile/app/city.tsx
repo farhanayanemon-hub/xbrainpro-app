@@ -36,6 +36,7 @@ import { game, resetInput } from "@/game/store";
 import {
   downloadResources,
   ensureAvatarCached,
+  ensureZoneCached,
   type ResourceProgress,
 } from "@/game/resources";
 import { HOUSES } from "@/game/cityLayout";
@@ -131,10 +132,11 @@ export default function NeuraCity() {
     };
   }, [router]);
 
-  // Game-style resource download step with real progress.
+  // Game-style resource download step with real progress — spawn ("city")
+  // zone only. Other zones (house interiors, future maps) stream in on entry.
   useEffect(() => {
     let cancelled = false;
-    downloadResources((p) => {
+    downloadResources("city", (p) => {
       if (!cancelled) setResProgress(p);
     }).finally(() => {
       if (!cancelled) setResourcesDone(true);
@@ -284,6 +286,9 @@ export default function NeuraCity() {
   );
 
   const enterHome = useCallback(() => {
+    // Stream the interior zone's CDN assets on demand (bundled fallbacks render
+    // meanwhile); no-op today since the interior uses no downloadable assets.
+    void ensureZoneCached("interior");
     setActiveInterior();
     game.player.x = INTERIOR_SPAWN.x;
     game.player.z = INTERIOR_SPAWN.z;

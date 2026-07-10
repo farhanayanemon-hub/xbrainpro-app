@@ -1,15 +1,15 @@
 import { ensureCached } from "@/game/assetCache";
-import { getManifest, type AssetEntry } from "@/game/assetManifest";
+import { assetZone, getManifest, type AssetEntry } from "@/game/assetManifest";
 import { setResolvedAsset } from "@/game/assetResolver";
 
 /**
- * Downloads the world's CDN assets on entry — Free-Fire style: fetched once,
- * cached to disk by content hash, skipped next time. Models + textures (the
- * bulk of the scene) are fetched up front so the loading bar reflects real
- * work; avatars are fetched on demand when a player is chosen.
+ * Zone-scoped CDN asset loading — Free-Fire style. When the player enters a
+ * zone we download only that zone's models + textures (fetched once, cached to
+ * disk by content hash, skipped next time), instead of the whole catalog up
+ * front. Avatars are global and fetched on demand when a player is chosen.
  *
  * Fully tolerant: if the manifest/CDN is unreachable every 3D component falls
- * back to its bundled asset, so this never blocks entry into the city.
+ * back to its bundled asset, so this never blocks entry into a zone.
  */
 
 /** Parallel download limit — keeps startup smooth on weak devices/networks. */
@@ -17,16 +17,23 @@ const CONCURRENCY = 6;
 
 export type ResourceProgress = { done: number; total: number };
 
-export async function downloadResources(
-  onProgress: (progress: ResourceProgress) => void,
-): Promise<void> {
+/** Model/texture assets that belong to a given zone. */
+async function zoneAssets(zone: string): Promise<AssetEntry[]> {
   const manifest = await getManifest();
-  const required: AssetEntry[] = (manifest?.assets ?? []).filter(
-    (a) => a.category === "model" || a.category === "texture",
+  return (manifest?.assets ?? []).filter(
+    (a) =>
+      (a.category === "model" || a.category === "texture") &&
+      assetZone(a) === zone,
   );
+}
+
+async function fetchAll(
+  required: AssetEntry[],
+  onProgress?: (progress: ResourceProgress) => void,
+): Promise<void> {
   const total = required.length;
   let done = 0;
-  onProgress({ done, total });
+  onProgress?.({ done, total });
   if (total === 0) return;
 
   const queue = [...required];
@@ -39,7 +46,7 @@ export async function downloadResources(
         // Tolerated: the resolver falls back to the bundled asset.
       } finally {
         done += 1;
-        onProgress({ done, total });
+        onProgress?.({ done, total });
       }
     }
   }
@@ -47,6 +54,26 @@ export async function downloadResources(
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker()),
   );
+}
+
+/**
+ * Download the assets for the spawn zone (default "city") with real progress —
+ * this backs the "Downloading resources" bar shown before the world appears.
+ */
+export async function downloadResources(
+  zone: string,
+  onProgress: (progress: ResourceProgress) => void,
+): Promise<void> {
+  await fetchAll(await zoneAssets(zone), onProgress);
+}
+
+/**
+ * Fetch + cache a zone's assets on demand, e.g. when stepping into a house
+ * interior. No progress UI — it runs quietly and the resolver serves bundled
+ * assets until the CDN copies land. No-op when the zone has no CDN assets.
+ */
+export async function ensureZoneCached(zone: string): Promise<void> {
+  await fetchAll(await zoneAssets(zone));
 }
 
 /**
