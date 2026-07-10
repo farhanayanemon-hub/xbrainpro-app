@@ -118,10 +118,13 @@ export default function NeuraCity() {
     [worldMap, chatNpcId],
   );
 
-  const WorldFallback = useCallback(() => {
-    // Shown when the device/browser can't create a 3D (WebGL) context.
-    return <GlUnavailable onShown={() => setReady(true)} />;
-  }, []);
+  const WorldFallback = useCallback(
+    ({ error }: { error?: Error }) => {
+      // Shown when the 3D world crashes for any reason (WebGL or otherwise).
+      return <GlUnavailable onShown={() => setReady(true)} error={error} />;
+    },
+    [],
+  );
 
   return (
     <View style={styles.root}>
@@ -208,7 +211,13 @@ export default function NeuraCity() {
   );
 }
 
-function GlUnavailable({ onShown }: { onShown: () => void }) {
+function GlUnavailable({
+  onShown,
+  error,
+}: {
+  onShown: () => void;
+  error?: Error;
+}) {
   useEffect(() => {
     onShown();
   }, [onShown]);
@@ -217,9 +226,15 @@ function GlUnavailable({ onShown }: { onShown: () => void }) {
       <Text style={styles.loaderSpark}>✦</Text>
       <Text style={styles.glTitle}>NEURA CITY</Text>
       <Text style={styles.glText}>
-        This device can't render the 3D world (no WebGL support). Open the app
-        on your phone or a browser with 3D graphics enabled.
+        {error
+          ? "Something went wrong while loading the 3D world."
+          : "This device can't render the 3D world (no WebGL support). Open the app on your phone or a browser with 3D graphics enabled."}
       </Text>
+      {error ? (
+        <Text style={styles.glError}>
+          {String(error.message || error).slice(0, 300)}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -285,5 +300,13 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.dark.mutedForeground,
     textAlign: "center",
+  },
+  glError: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#f87171",
+    textAlign: "center",
+    marginTop: 14,
   },
 });
