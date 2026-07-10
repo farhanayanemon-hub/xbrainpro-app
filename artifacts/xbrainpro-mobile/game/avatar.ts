@@ -48,6 +48,7 @@ export const GENDER_AVATAR: Record<AvatarGender, string> = {
 };
 
 const STORAGE_KEY = "neura.avatarId";
+const OWNED_KEY = "neura.ownedAvatars";
 
 /** Load the persisted avatar choice; falls back to the default. */
 export async function loadAvatarId(): Promise<string> {
@@ -67,4 +68,43 @@ export async function saveAvatarId(id: string): Promise<void> {
   } catch {
     // non-fatal: choice still applies for this session
   }
+}
+
+/**
+ * Load the set of avatar looks the player has unlocked in the Store. The
+ * currently-equipped look is always implicitly owned, so callers merge it in;
+ * this returns only the explicitly-unlocked ids that still exist in the
+ * catalog. Unknown/removed ids are dropped.
+ */
+export async function loadOwnedAvatarIds(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(OWNED_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (x): x is string => typeof x === "string" && !!AVATAR_MAP[x],
+        );
+      }
+    }
+  } catch {
+    // storage unavailable / corrupt — treat as nothing unlocked yet
+  }
+  return [];
+}
+
+/**
+ * Unlock a look and persist it to the owned set. Returns the updated list of
+ * owned ids (deduped). Unknown ids are ignored.
+ */
+export async function unlockAvatar(id: string): Promise<string[]> {
+  const owned = new Set(await loadOwnedAvatarIds());
+  if (AVATAR_MAP[id]) owned.add(id);
+  const list = [...owned];
+  try {
+    await AsyncStorage.setItem(OWNED_KEY, JSON.stringify(list));
+  } catch {
+    // non-fatal: unlock still applies for this session
+  }
+  return list;
 }

@@ -13,7 +13,14 @@ import colors, { fonts } from "@/constants/colors";
 import { absoluteApiUrl } from "@/lib/session";
 import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
-import { GENDER_AVATAR, loadAvatarId } from "@/game/avatar";
+import StorePanel from "@/components/lobby/StorePanel";
+import {
+  GENDER_AVATAR,
+  loadAvatarId,
+  loadOwnedAvatarIds,
+  saveAvatarId,
+  unlockAvatar,
+} from "@/game/avatar";
 
 const C = colors.dark;
 
@@ -21,14 +28,14 @@ type MenuItem = {
   key: string;
   icon: string;
   label: string;
-  action: "play" | "friends" | "character" | "soon";
+  action: "play" | "friends" | "character" | "store" | "soon";
   ready: boolean;
 };
 
 const MENU: MenuItem[] = [
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character", ready: true },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends", ready: true },
-  { key: "store", icon: "🛍️", label: "STORE", action: "soon", ready: false },
+  { key: "store", icon: "🛍️", label: "STORE", action: "store", ready: true },
   { key: "events", icon: "🎉", label: "EVENTS", action: "soon", ready: false },
   { key: "maps", icon: "🗺️", label: "MAPS", action: "soon", ready: false },
 ];
@@ -48,20 +55,57 @@ export default function LobbyScreen({
 }) {
   const [comingSoon, setComingSoon] = useState<MenuItem | null>(null);
   const [friendsOpen, setFriendsOpen] = useState(false);
-  const [avatarId, setAvatarId] = useState(
+  const [storeOpen, setStoreOpen] = useState(false);
+  // The equipped look — this is what persists and carries into the city.
+  const [equippedId, setEquippedId] = useState(
     GENDER_AVATAR[profile.gender === "female" ? "female" : "male"],
   );
+  // The look currently being previewed in the Store (drives the 3D hero while
+  // the sheet is open). Falls back to the equipped look when the store closes.
+  const [previewId, setPreviewId] = useState(equippedId);
+  const [ownedIds, setOwnedIds] = useState<string[]>([]);
 
-  // Show the same character the player last used in the city.
+  // Show the same character the player last used in the city, and load which
+  // looks they've unlocked in the Store.
   useEffect(() => {
     let cancelled = false;
     void loadAvatarId().then((id) => {
-      if (!cancelled && id) setAvatarId(id);
+      if (!cancelled && id) {
+        setEquippedId(id);
+        setPreviewId(id);
+      }
+    });
+    void loadOwnedAvatarIds().then((ids) => {
+      if (!cancelled) setOwnedIds(ids);
     });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const openStore = () => {
+    setPreviewId(equippedId);
+    setStoreOpen(true);
+  };
+
+  const closeStore = () => {
+    setPreviewId(equippedId); // discard any un-equipped preview
+    setStoreOpen(false);
+  };
+
+  const handleUnlock = (id: string) => {
+    void unlockAvatar(id).then((ids) => setOwnedIds(ids));
+  };
+
+  const handleEquip = (id: string) => {
+    setEquippedId(id);
+    setPreviewId(id);
+    void saveAvatarId(id);
+  };
+
+  // The 3D hero shows the previewed look while browsing the store, otherwise
+  // the equipped one.
+  const heroAvatarId = storeOpen ? previewId : equippedId;
 
   const photoUrl = profile.photoUrl ? absoluteApiUrl(profile.photoUrl) : null;
   const initialLetter = profile.displayName.charAt(0).toUpperCase();
@@ -74,6 +118,9 @@ export default function LobbyScreen({
       case "friends":
         setFriendsOpen(true);
         break;
+      case "store":
+        openStore();
+        break;
       case "soon":
         setComingSoon(item);
         break;
@@ -85,7 +132,7 @@ export default function LobbyScreen({
   return (
     <View style={styles.root}>
       {/* 3D character hero */}
-      <LobbyAvatarStage avatarId={avatarId} fallbackPhotoUrl={photoUrl} />
+      <LobbyAvatarStage avatarId={heroAvatarId} fallbackPhotoUrl={photoUrl} />
 
       {/* Legibility scrims so UI stays readable over the 3D scene */}
       <View style={styles.scrimTop} pointerEvents="none" />
@@ -190,6 +237,20 @@ export default function LobbyScreen({
             </View>
           </View>
         </Modal>
+      )}
+
+      {/* Store bottom sheet — rendered inline (not a Modal) so the 3D hero
+          above stays mounted and live-previews the selected look. */}
+      {storeOpen && (
+        <StorePanel
+          selectedId={previewId}
+          equippedId={equippedId}
+          ownedIds={ownedIds}
+          onPreview={setPreviewId}
+          onUnlock={handleUnlock}
+          onEquip={handleEquip}
+          onClose={closeStore}
+        />
       )}
 
       {/* Coming soon modal */}
