@@ -95,6 +95,20 @@ export function attachRealtime(server: Server): WebSocketServer {
   }
 
   wss.on("connection", async (ws, req) => {
+    // Attach a lifecycle guard immediately, BEFORE any async auth/DB work, so a
+    // socket that disconnects during that window is never registered as a live
+    // client. `registeredId` is set only once the client is placed in the map.
+    let registeredId: string | null = null;
+    const cleanup = () => {
+      if (registeredId && clients.get(registeredId)?.ws === ws) {
+        const gone = registeredId;
+        clients.delete(gone);
+        broadcast({ t: "leave", id: gone }, gone);
+      }
+    };
+    ws.on("close", cleanup);
+    ws.on("error", cleanup);
+
     let token: string | null = null;
     try {
       const url = new URL(req.url ?? "", "http://localhost");
@@ -117,6 +131,10 @@ export function attachRealtime(server: Server): WebSocketServer {
       })
       .from(playerProfilesTable)
       .where(eq(playerProfilesTable.userId, user.id));
+
+    // The socket may have closed while we were awaiting auth/profile. Bail
+    // before registering so we never leave a dead entry in the map.
+    if (ws.readyState !== WebSocket.OPEN) return;
 
     const id = `u${user.id}`;
 
@@ -145,6 +163,7 @@ export function attachRealtime(server: Server): WebSocketServer {
       lastMoveAt: 0,
     };
     clients.set(id, client);
+    registeredId = id;
 
     send(ws, { t: "welcome", id });
 
@@ -217,24 +236,21 @@ export function attachRealtime(server: Server): WebSocketServer {
       }
     });
 
-    const cleanup = () => {
-      // Only remove if this socket is still the active one for the user.
-      if (clients.get(id)?.ws === ws) {
-        clients.delete(id);
-        broadcast({ t: "leave", id }, id);
-      }
-    };
-    ws.on("close", cleanup);
-    ws.on("error", cleanup);
   });
 
   const heartbeat = setInterval(() => {
-    for (const c of clients.values()) {
+    for (const [id, c] of clients) {
       if (!c.alive) {
+        // Missed the last ping: force-close and remove eagerly rather than
+        // waiting on a `close` event that may never fire for a dead socket.
         try {
           c.ws.terminate();
         } catch {
           /* ignore */
+        }
+        if (clients.get(id)?.ws === c.ws) {
+          clients.delete(id);
+          broadcast({ t: "leave", id }, id);
         }
         continue;
       }
