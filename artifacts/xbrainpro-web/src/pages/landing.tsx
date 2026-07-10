@@ -35,7 +35,10 @@ export default function Landing() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="/play" data-testid="link-play">
+          <a
+            href={import.meta.env.DEV ? "https://xbrainpro.com/play" : "/play"}
+            data-testid="link-play"
+          >
             <Button
               size="lg"
               className="w-full sm:w-auto text-base h-14 px-8 rounded-full bg-white text-black hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)]"
