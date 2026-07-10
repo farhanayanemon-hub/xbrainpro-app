@@ -1,21 +1,17 @@
 import React, { useMemo } from "react";
 import { RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 
-import { assetUri } from "@/game/assetUri";
+import { resolveTexture } from "@/game/assetResolver";
 import { GROUND_SIZE, WORLD_BOUND, type BuildingDef } from "@/game/cityLayout";
 import { useTexture } from "@/game/drei";
 import House from "@/game/House";
 import Model from "@/game/Model";
-import {
-  BUILDING_NATIVE_FOOTPRINT,
-  TEXTURE_SOURCES,
-  type TextureId,
-} from "@/game/models";
+import { BUILDING_NATIVE_FOOTPRINT, type TextureId } from "@/game/models";
 import type { FountainDef, ParsedWorldMap, StallDef } from "@/game/worldMap";
 
 /** Load a bundled ground texture and give it its own repeat settings. */
 function useGroundTexture(id: TextureId, rx: number, ry: number): Texture {
-  const tex = useTexture(assetUri(TEXTURE_SOURCES[id])) as Texture;
+  const tex = useTexture(resolveTexture(id)) as Texture;
   return useMemo(() => {
     const t = tex.clone();
     t.wrapS = RepeatWrapping;

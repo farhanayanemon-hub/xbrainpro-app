@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import type { Mesh, Object3D } from "three";
 
-import { assetUri } from "@/game/assetUri";
+import { resolveModel } from "@/game/assetResolver";
 import { useGLTF } from "@/game/drei";
-import { MODEL_SOURCES, type ModelId } from "@/game/models";
+import { type ModelId } from "@/game/models";
 
 /**
  * Places one instance of a GLB model in the scene. The loaded scene graph is
@@ -22,7 +22,7 @@ export default function Model({
   scale?: number | [number, number, number];
 }) {
   const gltf = useGLTF(
-    assetUri(MODEL_SOURCES[id]),
+    resolveModel(id),
   ) as unknown as { scene: Object3D };
 
   const object = useMemo(() => {

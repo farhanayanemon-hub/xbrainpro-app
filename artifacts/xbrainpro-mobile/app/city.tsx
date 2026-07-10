@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -34,6 +35,7 @@ import GameCanvas from "@/game/GameCanvas";
 import { game, resetInput } from "@/game/store";
 import {
   downloadResources,
+  ensureAvatarCached,
   type ResourceProgress,
 } from "@/game/resources";
 import { HOUSES } from "@/game/cityLayout";
@@ -78,6 +80,9 @@ export default function NeuraCity() {
     total: 1,
   });
   const [resourcesDone, setResourcesDone] = useState(false);
+  // Bumped whenever a CDN asset finishes caching, so components re-read the
+  // resolver and swap the bundled fallback for the freshly downloaded copy.
+  const [, bumpAssets] = useReducer((n: number) => n + 1, 0);
 
   const userPickedAvatar = useRef(false);
   // Mirrors avatarId so the realtime self-getter (a stable closure) always
@@ -149,6 +154,19 @@ export default function NeuraCity() {
       cancelled = true;
     };
   }, []);
+
+  // Download the selected avatar from the CDN on demand (not all nine up
+  // front); re-render once it's cached so the resolver swaps in the CDN copy.
+  // Until then the bundled avatar renders, so there's never a blank character.
+  useEffect(() => {
+    let cancelled = false;
+    ensureAvatarCached(avatarId).then(() => {
+      if (!cancelled) bumpAssets();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarId]);
 
   // Fetch the live world map (cache/offline fallback handled inside).
   useEffect(() => {
@@ -339,16 +357,20 @@ export default function NeuraCity() {
           fallback={<GlUnavailable onShown={() => setReady(true)} />}
         >
           <React.Suspense fallback={null}>
-            <WorldScene
-              map={worldMap}
-              avatarId={avatarId}
-              inside={inside}
-              homePlot={homePlot}
-              remoteIds={inside ? [] : remoteIds}
-              onNearNpc={onNearNpc}
-              onNearInteract={onNearInteract}
-              onLoaded={() => setReady(true)}
-            />
+            {/* Mount only after CDN resources are resolved so the 3D loaders
+                read the downloaded assets instead of the bundled fallbacks. */}
+            {resourcesDone && (
+              <WorldScene
+                map={worldMap}
+                avatarId={avatarId}
+                inside={inside}
+                homePlot={homePlot}
+                remoteIds={inside ? [] : remoteIds}
+                onNearNpc={onNearNpc}
+                onNearInteract={onNearInteract}
+                onLoaded={() => setReady(true)}
+              />
+            )}
           </React.Suspense>
         </GameCanvas>
       </ErrorBoundary>

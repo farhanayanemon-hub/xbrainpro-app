@@ -13,6 +13,9 @@ import {
   Boxes,
   Map as MapIcon,
   LogOut,
+  UploadCloud,
+  Package,
+  ImageIcon,
 } from "lucide-react";
 import { useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
@@ -490,6 +493,393 @@ function ModelTab({ settings }: { settings: AdminSettings }) {
   );
 }
 
+interface GameAsset {
+  id: string;
+  category: "model" | "texture" | "avatar";
+  slot: "male" | "female" | null;
+  label: string;
+  fileName: string;
+  hash: string;
+  size: number;
+  mime: string;
+  version: number;
+  enabled: boolean;
+  meta: Record<string, unknown>;
+  previewUrl: string | null;
+  updatedAt: string;
+}
+
+const ASSET_CATEGORIES = ["model", "texture", "avatar"] as const;
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+interface AssetEditorState {
+  id: string;
+  category: GameAsset["category"];
+  label: string;
+  slot: "none" | "male" | "female";
+  meta: string;
+  file: File | null;
+  replacing: boolean;
+}
+
+function AssetsTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editor, setEditor] = useState<AssetEditorState | null>(null);
+  const [deleting, setDeleting] = useState<GameAsset | null>(null);
+
+  const listQuery = useQuery<{ configured: boolean; assets: GameAsset[] }>({
+    queryKey: ["admin-assets"],
+    queryFn: () => fetchJson("/admin/assets"),
+  });
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["admin-assets"] });
+
+  const upload = useMutation({
+    mutationFn: async (state: AssetEditorState) => {
+      if (!state.file) throw new Error("Choose a file to upload");
+      if (state.meta.trim()) {
+        try {
+          JSON.parse(state.meta);
+        } catch {
+          throw new Error("Meta must be valid JSON");
+        }
+      }
+      const form = new FormData();
+      form.append("file", state.file);
+      form.append("id", state.id.trim());
+      form.append("category", state.category);
+      form.append("label", state.label.trim());
+      if (state.slot !== "none") form.append("slot", state.slot);
+      if (state.meta.trim()) form.append("meta", state.meta.trim());
+      return fetchJson<{ manifestVersion: number }>("/admin/assets", {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: (res) => {
+      invalidate();
+      setEditor(null);
+      toast({
+        title: "Asset saved",
+        description: `Manifest is now v${res.manifestVersion}. Players download it on next launch.`,
+      });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" }),
+  });
+
+  const setSlot = useMutation({
+    mutationFn: (vars: { id: string; slot: string }) =>
+      fetchJson<{ manifestVersion: number }>(`/admin/assets/${vars.id}/slot`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot: vars.slot }),
+      }),
+    onSuccess: () => {
+      invalidate();
+      toast({ title: "Slot updated" });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) =>
+      fetchJson<{ ok: boolean }>(`/admin/assets/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      invalidate();
+      setDeleting(null);
+      toast({ title: "Asset deleted" });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" }),
+  });
+
+  if (listQuery.isLoading) {
+    return (
+      <div className="py-16 flex justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const configured = listQuery.data?.configured ?? false;
+  const assets = listQuery.data?.assets ?? [];
+
+  return (
+    <div className="space-y-4">
+      {!configured && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-400">
+          Cloud storage (R2) is not configured on the server — uploads are disabled.
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-xs text-muted-foreground">
+          {assets.length} asset{assets.length === 1 ? "" : "s"} · models, textures &amp; avatars
+        </p>
+        <Button
+          disabled={!configured}
+          onClick={() =>
+            setEditor({
+              id: "",
+              category: "model",
+              label: "",
+              slot: "none",
+              meta: "",
+              file: null,
+              replacing: false,
+            })
+          }
+          data-testid="button-add-asset"
+        >
+          <UploadCloud className="w-4 h-4 mr-1" /> Upload asset
+        </Button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        {assets.length === 0 && (
+          <p className="p-6 text-sm text-muted-foreground text-center">
+            No assets yet. Upload models, textures or avatars to serve them from the CDN.
+          </p>
+        )}
+        {assets.map((a) => (
+          <div
+            key={a.id}
+            className="flex items-center gap-3 px-4 py-3"
+            data-testid={`row-asset-${a.id}`}
+          >
+            <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0">
+              {a.category === "texture" && a.previewUrl ? (
+                <img
+                  src={a.previewUrl}
+                  alt={a.label}
+                  className="w-full h-full object-cover"
+                />
+              ) : a.category === "texture" ? (
+                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Package className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium truncate">{a.label}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide shrink-0">
+                  {a.category}
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-muted-foreground truncate">
+                {a.id} · v{a.version} · {formatBytes(a.size)}
+              </p>
+            </div>
+            {a.category === "avatar" && (
+              <Select
+                value={a.slot ?? "none"}
+                onValueChange={(slot) => setSlot.mutate({ id: a.id, slot })}
+              >
+                <SelectTrigger className="w-28 h-8" data-testid={`select-slot-${a.id}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No slot</SelectItem>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!configured}
+              onClick={() =>
+                setEditor({
+                  id: a.id,
+                  category: a.category,
+                  label: a.label,
+                  slot: a.slot ?? "none",
+                  meta: Object.keys(a.meta).length ? JSON.stringify(a.meta, null, 2) : "",
+                  file: null,
+                  replacing: true,
+                })
+              }
+              data-testid={`button-replace-${a.id}`}
+            >
+              <UploadCloud className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setDeleting(a)}
+              data-testid={`button-delete-asset-${a.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={editor !== null} onOpenChange={(open) => !open && setEditor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editor?.replacing ? `Replace "${editor?.id}"` : "Upload asset"}
+            </DialogTitle>
+          </DialogHeader>
+          {editor && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Asset ID</p>
+                  <Input
+                    value={editor.id}
+                    disabled={editor.replacing}
+                    onChange={(e) => setEditor({ ...editor, id: e.target.value })}
+                    placeholder="e.g. knight"
+                    data-testid="input-asset-id"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Category</p>
+                  <Select
+                    value={editor.category}
+                    onValueChange={(category) =>
+                      setEditor({ ...editor, category: category as GameAsset["category"] })
+                    }
+                  >
+                    <SelectTrigger data-testid="select-asset-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASSET_CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1.5">Label</p>
+                <Input
+                  value={editor.label}
+                  onChange={(e) => setEditor({ ...editor, label: e.target.value })}
+                  placeholder="Human-friendly name"
+                  data-testid="input-asset-label"
+                />
+              </div>
+              {editor.category === "avatar" && (
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Slot</p>
+                  <Select
+                    value={editor.slot}
+                    onValueChange={(slot) =>
+                      setEditor({ ...editor, slot: slot as AssetEditorState["slot"] })
+                    }
+                  >
+                    <SelectTrigger data-testid="select-asset-slot">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No slot</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium mb-1.5">
+                  File {editor.replacing && "(new version)"}
+                </p>
+                <Input
+                  type="file"
+                  accept=".glb,.gltf,.jpg,.jpeg,.png,.webp,.ktx2"
+                  onChange={(e) =>
+                    setEditor({ ...editor, file: e.target.files?.[0] ?? null })
+                  }
+                  data-testid="input-asset-file"
+                />
+                {editor.file && (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {editor.file.name} · {formatBytes(editor.file.size)}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1.5">Meta (JSON, optional)</p>
+                <Textarea
+                  value={editor.meta}
+                  onChange={(e) => setEditor({ ...editor, meta: e.target.value })}
+                  rows={4}
+                  className="font-mono text-xs"
+                  placeholder='{ "scale": 1.2 }'
+                  data-testid="textarea-asset-meta"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditor(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => editor && upload.mutate(editor)}
+              disabled={upload.isPending || !editor?.file || !editor?.id.trim()}
+              data-testid="button-save-asset"
+            >
+              {upload.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UploadCloud className="w-4 h-4" />
+              )}
+              {editor?.replacing ? "Replace" : "Upload"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete "{deleting?.label}"?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This removes the asset from the CDN and manifest. Players fall back to the
+            bundled version. This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleting && remove.mutate(deleting.id)}
+              disabled={remove.isPending}
+              data-testid="button-confirm-delete-asset"
+            >
+              {remove.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -604,12 +994,18 @@ export default function Admin() {
             <TabsTrigger value="world" data-testid="tab-world">
               World objects
             </TabsTrigger>
+            <TabsTrigger value="assets" data-testid="tab-assets">
+              Assets
+            </TabsTrigger>
             <TabsTrigger value="ai" data-testid="tab-ai">
               NPC AI
             </TabsTrigger>
           </TabsList>
           <TabsContent value="world" className="mt-4">
             <WorldObjectsTab />
+          </TabsContent>
+          <TabsContent value="assets" className="mt-4">
+            <AssetsTab />
           </TabsContent>
           <TabsContent value="ai" className="mt-4">
             <ModelTab settings={settings} />

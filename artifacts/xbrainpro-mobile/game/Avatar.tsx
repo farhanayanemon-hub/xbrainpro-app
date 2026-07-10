@@ -4,8 +4,7 @@ import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { Box3, Vector3 } from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
-import { assetUri } from "@/game/assetUri";
-import { AVATAR_MAP, DEFAULT_AVATAR_ID } from "@/game/avatar";
+import { resolveAvatar } from "@/game/assetResolver";
 import { useAnimations, useGLTF } from "@/game/drei";
 import { game } from "@/game/store";
 
@@ -34,8 +33,7 @@ export default function Avatar({
    */
   getMotion?: () => number;
 }) {
-  const def = AVATAR_MAP[avatarId] ?? AVATAR_MAP[DEFAULT_AVATAR_ID];
-  const gltf = useGLTF(assetUri(def.src)) as unknown as {
+  const gltf = useGLTF(resolveAvatar(avatarId)) as unknown as {
     scene: Object3D;
     animations: AnimationClip[];
   };

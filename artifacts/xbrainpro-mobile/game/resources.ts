@@ -1,46 +1,42 @@
-import { Asset } from "expo-asset";
-
-import { AVATARS } from "@/game/avatar";
-import { MODEL_SOURCES, TEXTURE_SOURCES } from "@/game/models";
+import { ensureCached } from "@/game/assetCache";
+import { getManifest, type AssetEntry } from "@/game/assetManifest";
+import { setResolvedAsset } from "@/game/assetResolver";
 
 /**
- * Every bundled 3D/texture asset the world needs. Downloading these up front
- * (into the platform asset cache) lets the loading screen show real progress
- * like a game "downloading resources" step, and makes the scene pop in fast
- * because drei's loaders hit warm caches.
+ * Downloads the world's CDN assets on entry — Free-Fire style: fetched once,
+ * cached to disk by content hash, skipped next time. Models + textures (the
+ * bulk of the scene) are fetched up front so the loading bar reflects real
+ * work; avatars are fetched on demand when a player is chosen.
+ *
+ * Fully tolerant: if the manifest/CDN is unreachable every 3D component falls
+ * back to its bundled asset, so this never blocks entry into the city.
  */
-const RESOURCE_MODULES: number[] = [
-  ...new Set<number>([
-    ...(Object.values(MODEL_SOURCES) as number[]),
-    ...(Object.values(TEXTURE_SOURCES) as number[]),
-    ...AVATARS.map((a) => a.src),
-  ]),
-];
 
 /** Parallel download limit — keeps startup smooth on weak devices/networks. */
 const CONCURRENCY = 6;
 
 export type ResourceProgress = { done: number; total: number };
 
-/**
- * Download all world resources, reporting progress after each asset.
- * Individual failures are tolerated (the scene loaders will retry on demand),
- * so this never throws and never blocks entry into the city.
- */
 export async function downloadResources(
   onProgress: (progress: ResourceProgress) => void,
 ): Promise<void> {
-  const queue = [...RESOURCE_MODULES];
-  const total = queue.length;
+  const manifest = await getManifest();
+  const required: AssetEntry[] = (manifest?.assets ?? []).filter(
+    (a) => a.category === "model" || a.category === "texture",
+  );
+  const total = required.length;
   let done = 0;
   onProgress({ done, total });
+  if (total === 0) return;
 
+  const queue = [...required];
   async function worker(): Promise<void> {
-    for (let mod = queue.shift(); mod !== undefined; mod = queue.shift()) {
+    for (let entry = queue.shift(); entry; entry = queue.shift()) {
       try {
-        await Asset.fromModule(mod).downloadAsync();
+        const uri = await ensureCached(entry);
+        setResolvedAsset(entry.id, uri);
       } catch {
-        // Tolerated: drei loaders fetch on demand as a fallback.
+        // Tolerated: the resolver falls back to the bundled asset.
       } finally {
         done += 1;
         onProgress({ done, total });
@@ -51,4 +47,23 @@ export async function downloadResources(
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker()),
   );
+}
+
+/**
+ * Fetch + cache a single avatar GLB on demand and register its resolved uri.
+ * Called when the player selects an avatar so we don't download all nine up
+ * front. No-op (falls back to bundled) if the avatar isn't in the manifest.
+ */
+export async function ensureAvatarCached(id: string): Promise<void> {
+  try {
+    const manifest = await getManifest();
+    const entry = manifest?.assets.find(
+      (a) => a.category === "avatar" && a.id === id,
+    );
+    if (!entry) return;
+    const uri = await ensureCached(entry);
+    setResolvedAsset(id, uri);
+  } catch {
+    // Tolerated: Avatar falls back to its bundled glb.
+  }
 }
