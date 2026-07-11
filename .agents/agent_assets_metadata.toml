@@ -108,3 +108,39 @@ id = "R6ZpoAAjXH41YWFb1nibf"
 uri = "file://artifacts/mockup-sandbox/public/images/ng-mapdl-bg.png"
 type = "image"
 title = "Neon city map loading background"
+
+[[generated]]
+id = "I1D9WRriSHt6o-_ApcgDr"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-terms-bg.png"
+type = "image"
+title = "Neon cyber city terms background"
+
+[[generated]]
+id = "59D25lvqMVobb2nbxcVNa"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-custom-bg.png"
+type = "image"
+title = "neon customization room background"
+
+[[generated]]
+id = "ANTWCfwnmQuYYPEWMWEhw"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-charsel-bg.png"
+type = "image"
+title = "Neon cyberpunk game lobby background"
+
+[[generated]]
+id = "R9Qd1mJhhoaNQPPE5QjhM"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-charsel-male.png"
+type = "image"
+title = "3D male neon cyberpunk character"
+
+[[generated]]
+id = "nX7T8wdvSycWiTpQYS5ba"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-charsel-female.png"
+type = "image"
+title = "3D female neon cyberpunk character"
+
+[[generated]]
+id = "jctDm-FiMH_xnTac0gNMQ"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-name-bg.png"
+type = "image"
+title = "Neon game background"
