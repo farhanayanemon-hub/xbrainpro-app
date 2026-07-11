@@ -122,7 +122,7 @@ export function MapDownload() {
             <div className="h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-800 relative">
               <div 
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-pink-500 rounded-full animate-bar-stripes"
-                style={{ width: \`\${overallProgress}%\` }}
+                style={{ width: `${overallProgress}%` }}
               />
               <div className="absolute inset-0 shadow-[inset_0_0_10px_rgba(236,72,153,0.5)] pointer-events-none mix-blend-overlay rounded-full" />
             </div>
@@ -148,37 +148,37 @@ export function MapDownload() {
               {chunks.map((chunk, idx) => (
                 <div 
                   key={chunk.id} 
-                  className={\`p-3 rounded-xl border relative overflow-hidden transition-colors \${
+                  className={`p-3 rounded-xl border relative overflow-hidden transition-colors ${
                     chunk.status === 'downloading' 
                       ? 'bg-slate-800/80 border-cyan-500/50 neon-box-glow' 
                       : chunk.status === 'complete'
                       ? 'bg-slate-900/50 border-pink-500/30'
                       : 'bg-slate-900/30 border-slate-800'
-                  }\`}
+                  }`}
                 >
                   
                   {/* Background progress for downloading/complete */}
                   {(chunk.status === 'downloading' || chunk.status === 'complete') && (
                     <div 
-                      className={\`absolute inset-y-0 left-0 opacity-10 \${
+                      className={`absolute inset-y-0 left-0 opacity-10 ${
                         chunk.status === 'complete' ? 'bg-pink-500' : 'bg-cyan-500'
-                      }\`}
-                      style={{ width: \`\${chunk.progress}%\` }}
+                      }`}
+                      style={{ width: `${chunk.progress}%` }}
                     />
                   )}
                   
                   <div className="relative z-10 flex justify-between items-center mb-1.5">
                     <div className="flex items-center gap-2">
-                      <Hexagon className={\`w-3 h-3 \${
+                      <Hexagon className={`w-3 h-3 ${
                         chunk.status === 'complete' ? 'text-pink-400 fill-pink-400/20' 
                         : chunk.status === 'downloading' ? 'text-cyan-400 animate-spin-slow'
                         : 'text-slate-600'
-                      }\`} />
-                      <span className={\`text-xs font-bold \${
+                      }`} />
+                      <span className={`text-xs font-bold ${
                         chunk.status === 'complete' ? 'text-slate-300' 
                         : chunk.status === 'downloading' ? 'text-white'
                         : 'text-slate-500'
-                      }\`}>
+                      }`}>
                         {chunk.name}
                       </span>
                     </div>
@@ -190,19 +190,19 @@ export function MapDownload() {
                   <div className="relative z-10 flex items-center gap-3">
                     <div className="flex-1 h-1.5 bg-slate-950 rounded-full overflow-hidden">
                       <div 
-                        className={\`h-full rounded-full \${
+                        className={`h-full rounded-full ${
                           chunk.status === 'complete' ? 'bg-pink-500' 
                           : chunk.status === 'downloading' ? 'bg-cyan-400 animate-bar-stripes'
                           : 'bg-transparent'
-                        }\`}
-                        style={{ width: \`\${chunk.progress}%\` }}
+                        }`}
+                        style={{ width: `${chunk.progress}%` }}
                       />
                     </div>
-                    <span className={\`text-[10px] font-bold w-8 text-right \${
+                    <span className={`text-[10px] font-bold w-8 text-right ${
                       chunk.status === 'complete' ? 'text-pink-400'
                       : chunk.status === 'downloading' ? 'text-cyan-400'
                       : 'text-slate-600'
-                    }\`}>
+                    }`}>
                       {Math.floor(chunk.progress)}%
                     </span>
                   </div>

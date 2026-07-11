@@ -120,18 +120,18 @@ export function ResourceDownload() {
                 }
 
                 return (
-                  <div key={cat.id} className={\`relative p-2.5 rounded-lg border \${isDownloading ? (cat.color === 'pink' ? 'border-pink-500/30 bg-pink-500/5' : 'border-cyan-500/30 bg-cyan-500/5') : 'border-white/5 bg-black/40'} transition-all duration-300\`}>
+                  <div key={cat.id} className={`relative p-2.5 rounded-lg border ${isDownloading ? (cat.color === 'pink' ? 'border-pink-500/30 bg-pink-500/5' : 'border-cyan-500/30 bg-cyan-500/5') : 'border-white/5 bg-black/40'} transition-all duration-300`}>
                     {isDownloading && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-scan rounded-lg pointer-events-none" />
                     )}
                     
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2.5">
-                        <div className={\`p-1.5 rounded-md \${isComplete ? 'bg-green-500/20 text-green-400' : isDownloading ? (cat.color === 'pink' ? 'bg-pink-500/20 text-pink-400' : 'bg-cyan-500/20 text-cyan-400') : 'bg-gray-800 text-gray-500'}\`}>
+                        <div className={`p-1.5 rounded-md ${isComplete ? 'bg-green-500/20 text-green-400' : isDownloading ? (cat.color === 'pink' ? 'bg-pink-500/20 text-pink-400' : 'bg-cyan-500/20 text-cyan-400') : 'bg-gray-800 text-gray-500'}`}>
                           <cat.icon className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <h3 className={\`text-xs font-bold \${isComplete ? 'text-gray-200' : isDownloading ? 'text-white' : 'text-gray-500'}\`}>
+                          <h3 className={`text-xs font-bold ${isComplete ? 'text-gray-200' : isDownloading ? 'text-white' : 'text-gray-500'}`}>
                             {cat.name}
                           </h3>
                           <p className="text-[9px] text-gray-500 font-mono mt-0.5">
@@ -145,8 +145,8 @@ export function ResourceDownload() {
                           <CheckCircle2 className="w-4 h-4 text-green-400" />
                         ) : isDownloading ? (
                           <div className="flex items-center gap-2">
-                            <span className={\`text-xs font-black \${statusColor}\`}>{percent}%</span>
-                            <Loader2 className={\`w-3.5 h-3.5 animate-spin \${statusColor}\`} />
+                            <span className={`text-xs font-black ${statusColor}`}>{percent}%</span>
+                            <Loader2 className={`w-3.5 h-3.5 animate-spin ${statusColor}`} />
                           </div>
                         ) : (
                           <span className="text-[10px] text-gray-600 font-bold tracking-wider">WAITING</span>
@@ -156,9 +156,9 @@ export function ResourceDownload() {
                     
                     <div className="h-1.5 bg-black/80 rounded-full overflow-hidden border border-white/5">
                       <div 
-                        className={\`h-full rounded-full transition-all duration-500 \${barColor}\`}
+                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                         style={{ 
-                          width: \`\${percent}%\`,
+                          width: `${percent}%`,
                           ...(isDownloading ? { backgroundSize: '1rem 1rem', backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)' } : {})
                         }}
                       />
