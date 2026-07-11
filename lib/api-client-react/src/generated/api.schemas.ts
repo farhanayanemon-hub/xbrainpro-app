@@ -91,6 +91,120 @@ export interface PurchaseAvatarResult {
   owned: boolean;
 }
 
+export type DailyTaskRewardCurrency = typeof DailyTaskRewardCurrency[keyof typeof DailyTaskRewardCurrency];
+
+
+export const DailyTaskRewardCurrency = {
+  coins: 'coins',
+  gems: 'gems',
+} as const;
+
+export interface DailyTask {
+  id: string;
+  title: string;
+  description: string;
+  /** Progress needed to complete the task */
+  goal: number;
+  /** Current progress, capped at goal */
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  rewardCurrency: DailyTaskRewardCurrency;
+  rewardAmount: number;
+}
+
+export interface DailyState {
+  /** UTC calendar day the board is for, e.g. "2026-07-11" */
+  dayKey: string;
+  /** Consecutive days logged in, including today */
+  streak: number;
+  longestStreak: number;
+  tasks: DailyTask[];
+}
+
+export type ClaimResultRewardCurrency = typeof ClaimResultRewardCurrency[keyof typeof ClaimResultRewardCurrency];
+
+
+export const ClaimResultRewardCurrency = {
+  coins: 'coins',
+  gems: 'gems',
+} as const;
+
+export interface ClaimResult {
+  /** True when this call paid out the reward */
+  claimed: boolean;
+  /** True when the reward had already been claimed today */
+  alreadyClaimed: boolean;
+  rewardCurrency: ClaimResultRewardCurrency;
+  rewardAmount: number;
+  balance: Wallet;
+}
+
+export type MysteryRewardType = typeof MysteryRewardType[keyof typeof MysteryRewardType];
+
+
+export const MysteryRewardType = {
+  coins: 'coins',
+  gems: 'gems',
+  avatar: 'avatar',
+} as const;
+
+/**
+ * Currency kind for coins/gems rewards, null for an avatar
+ * @nullable
+ */
+export type MysteryRewardCurrency = typeof MysteryRewardCurrency[keyof typeof MysteryRewardCurrency] | null;
+
+
+export const MysteryRewardCurrency = {
+  coins: 'coins',
+  gems: 'gems',
+} as const;
+
+export interface MysteryReward {
+  type: MysteryRewardType;
+  /** Currency amount for coins/gems rewards, 0 for an avatar */
+  amount: number;
+  /**
+     * Currency kind for coins/gems rewards, null for an avatar
+     * @nullable
+     */
+  currency: MysteryRewardCurrency;
+  /**
+     * Avatar look id for an avatar reward, null otherwise
+     * @nullable
+     */
+  avatarId: string | null;
+}
+
+export type MysteryBoxInfoCurrency = typeof MysteryBoxInfoCurrency[keyof typeof MysteryBoxInfoCurrency];
+
+
+export const MysteryBoxInfoCurrency = {
+  coins: 'coins',
+  gems: 'gems',
+} as const;
+
+export interface MysteryBoxInfo {
+  /** Gems charged to open one box */
+  cost: number;
+  currency: MysteryBoxInfoCurrency;
+  /** The possible rewards (odds are implied by repetition weight, not exposed) */
+  pool: MysteryReward[];
+}
+
+export interface OpenMysteryBoxInput {
+  /** Client-generated idempotency key for this open attempt */
+  openId: string;
+}
+
+export interface OpenMysteryBoxResult {
+  reward: MysteryReward;
+  balance: Wallet;
+  /** False when this was a replay of a previous open (idempotent) */
+  charged: boolean;
+}
+
 export interface PlayerHome {
   /** Index of the assigned residential house plot in the world map. */
   plot: number;

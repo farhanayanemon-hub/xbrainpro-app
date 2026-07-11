@@ -4,6 +4,7 @@ import { db, playerProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { resolveUserByToken } from "./auth";
 import { logger } from "./logger";
+import { advanceTask } from "./dailyTasks";
 import { filterProfanity } from "./profanity";
 import {
   getMuteUntil,
@@ -301,6 +302,11 @@ export function attachRealtime(server: Server): WebSocketServer {
           send(ws, { t: "snapshot", players: others });
           // ...and announce them to everyone else.
           broadcast({ t: "join", player: wire(client) }, id);
+          // Credit the "enter the city" daily task (fire-and-forget; capped
+          // server-side so re-joining can't farm it).
+          void advanceTask(client.userId, "play_city").catch((err) =>
+            logger.error({ err }, "Failed to advance play_city task"),
+          );
           break;
         }
         case "avatar": {
@@ -369,6 +375,10 @@ export function attachRealtime(server: Server): WebSocketServer {
           // Everyone including the sender gets the canonical broadcast, so the
           // sender's own feed/bubble reflects exactly what others see.
           broadcast({ t: "chat", msg: entry });
+          // Credit the "send a chat" daily task (fire-and-forget; capped).
+          void advanceTask(client.userId, "send_chat").catch((err) =>
+            logger.error({ err }, "Failed to advance send_chat task"),
+          );
           break;
         }
         case "vis": {

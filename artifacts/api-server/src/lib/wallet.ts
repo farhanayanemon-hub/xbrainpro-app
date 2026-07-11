@@ -47,8 +47,79 @@ export class InsufficientFundsError extends Error {
   }
 }
 
+/** A live transaction handle, extracted from the db so callers can compose
+ *  several balance changes into one atomic unit (e.g. spend + reward). */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 function toBalance(w: PlayerWallet): Balance {
   return { coins: w.coins, gems: w.gems };
+}
+
+/**
+ * The core balance mutation, run inside a caller-supplied transaction. Assumes
+ * the wallet already exists (call {@link getOrCreateWallet} first). Locks the
+ * wallet row with `FOR UPDATE`, is idempotent on `reference`, refuses to go
+ * negative, and writes a ledger entry. Use this to compose several changes in
+ * ONE transaction; standalone callers should use {@link adjustBalance}.
+ *
+ * Re-locking the same wallet row twice within one transaction is a no-op (the
+ * lock is already held), so multiple entries for the same player compose safely.
+ */
+export async function adjustWithinTx(
+  tx: Tx,
+  userId: number,
+  currency: Currency,
+  delta: number,
+  reason: string,
+  reference?: string,
+): Promise<AdjustResult> {
+  const [wallet] = await tx
+    .select()
+    .from(playerWalletsTable)
+    .where(eq(playerWalletsTable.userId, userId))
+    .for("update");
+
+  if (reference) {
+    const [dup] = await tx
+      .select({ id: walletTransactionsTable.id })
+      .from(walletTransactionsTable)
+      .where(
+        and(
+          eq(walletTransactionsTable.userId, userId),
+          eq(walletTransactionsTable.reference, reference),
+        ),
+      );
+    if (dup) {
+      return { balance: toBalance(wallet!), applied: false };
+    }
+  }
+
+  const current = currency === "coins" ? wallet!.coins : wallet!.gems;
+  const next = current + delta;
+  if (next < 0) {
+    throw new InsufficientFundsError(currency, -delta, current);
+  }
+
+  const set =
+    currency === "coins"
+      ? { coins: next, updatedAt: new Date() }
+      : { gems: next, updatedAt: new Date() };
+  const [updated] = await tx
+    .update(playerWalletsTable)
+    .set(set)
+    .where(eq(playerWalletsTable.userId, userId))
+    .returning();
+
+  await tx.insert(walletTransactionsTable).values({
+    userId,
+    currency,
+    amount: delta,
+    reason,
+    reference: reference ?? null,
+    balanceAfter: next,
+  });
+
+  return { balance: toBalance(updated!), applied: true };
 }
 
 /**
@@ -125,60 +196,14 @@ export async function adjustBalance(
 ): Promise<AdjustResult> {
   await getOrCreateWallet(userId);
 
-  return db.transaction(async (tx) => {
-    // Lock the wallet row FIRST so all balance changes for this user serialize.
-    // This makes the duplicate-reference check below race-safe: two concurrent
-    // requests with the same reference can't both pass it — the second blocks
-    // on the lock until the first commits, then sees the ledger row and returns
-    // applied=false instead of colliding on the unique index.
-    const [wallet] = await tx
-      .select()
-      .from(playerWalletsTable)
-      .where(eq(playerWalletsTable.userId, userId))
-      .for("update");
-
-    if (reference) {
-      const [dup] = await tx
-        .select({ id: walletTransactionsTable.id })
-        .from(walletTransactionsTable)
-        .where(
-          and(
-            eq(walletTransactionsTable.userId, userId),
-            eq(walletTransactionsTable.reference, reference),
-          ),
-        );
-      if (dup) {
-        return { balance: toBalance(wallet!), applied: false };
-      }
-    }
-
-    const current = currency === "coins" ? wallet!.coins : wallet!.gems;
-    const next = current + delta;
-    if (next < 0) {
-      throw new InsufficientFundsError(currency, -delta, current);
-    }
-
-    const set =
-      currency === "coins"
-        ? { coins: next, updatedAt: new Date() }
-        : { gems: next, updatedAt: new Date() };
-    const [updated] = await tx
-      .update(playerWalletsTable)
-      .set(set)
-      .where(eq(playerWalletsTable.userId, userId))
-      .returning();
-
-    await tx.insert(walletTransactionsTable).values({
-      userId,
-      currency,
-      amount: delta,
-      reason,
-      reference: reference ?? null,
-      balanceAfter: next,
-    });
-
-    return { balance: toBalance(updated!), applied: true };
-  });
+  // The wallet row is locked FIRST inside adjustWithinTx so all balance changes
+  // for this user serialize. This makes the duplicate-reference check race-safe:
+  // two concurrent requests with the same reference can't both pass it — the
+  // second blocks on the lock until the first commits, then sees the ledger row
+  // and returns applied=false instead of colliding on the unique index.
+  return db.transaction((tx) =>
+    adjustWithinTx(tx, userId, currency, delta, reason, reference),
+  );
 }
 
 /** Award currency. `amount` is treated as positive. */

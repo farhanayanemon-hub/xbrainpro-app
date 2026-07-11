@@ -36,6 +36,10 @@ tags:
     description: Player coin and gem balances
   - name: store
     description: Neura City store purchases
+  - name: daily-tasks
+    description: Daily engagement tasks and login streak
+  - name: mystery-box
+    description: Mystery Box gem gambling
 paths:
   /healthz:
     get:
@@ -792,6 +796,141 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /daily-tasks:
+    get:
+      operationId: getDailyTasks
+      tags: [daily-tasks]
+      summary: Get the player's daily task board and login streak
+      description: Also counts this call as today's login, auto-completing the check-in task and advancing the streak.
+      responses:
+        "200":
+          description: The daily task board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyState"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /daily-tasks/{taskId}/advance:
+    post:
+      operationId: advanceDailyTask
+      tags: [daily-tasks]
+      summary: Record progress on a client-tracked daily task
+      description: Progress is capped at the task's goal server-side. Unknown task ids are ignored. Returns the refreshed board.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The refreshed daily task board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyState"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /daily-tasks/{taskId}/claim:
+    post:
+      operationId: claimDailyTask
+      tags: [daily-tasks]
+      summary: Claim a completed daily task's reward
+      description: Pays the reward into the player's wallet. Idempotent — a task can only be claimed once per day.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The claim result and updated balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+        "400":
+          description: Task is not complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Unknown task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /mystery-box:
+    get:
+      operationId: getMysteryBox
+      tags: [mystery-box]
+      summary: Get the Mystery Box cost and reward odds
+      responses:
+        "200":
+          description: The box cost and reward pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MysteryBoxInfo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /mystery-box/open:
+    post:
+      operationId: openMysteryBox
+      tags: [mystery-box]
+      summary: Open the Mystery Box for a random reward
+      description: Charges gems and returns a weighted random reward, atomically. Send a unique openId per attempt so a retry is idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenMysteryBoxInput"
+      responses:
+        "200":
+          description: The reward and updated balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenMysteryBoxResult"
+        "400":
+          description: Not enough gems or missing openId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /world/map:
     get:
       operationId: getWorldMap
@@ -939,6 +1078,121 @@ components:
           type: string
         owned:
           type: boolean
+
+    DailyTask:
+      type: object
+      required: [id, title, description, goal, progress, completed, claimed, rewardCurrency, rewardAmount]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        goal:
+          type: integer
+          description: Progress needed to complete the task
+        progress:
+          type: integer
+          description: Current progress, capped at goal
+        completed:
+          type: boolean
+        claimed:
+          type: boolean
+        rewardCurrency:
+          type: string
+          enum: [coins, gems]
+        rewardAmount:
+          type: integer
+
+    DailyState:
+      type: object
+      required: [dayKey, streak, longestStreak, tasks]
+      properties:
+        dayKey:
+          type: string
+          description: UTC calendar day the board is for, e.g. "2026-07-11"
+        streak:
+          type: integer
+          description: Consecutive days logged in, including today
+        longestStreak:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyTask"
+
+    ClaimResult:
+      type: object
+      required: [claimed, alreadyClaimed, rewardCurrency, rewardAmount, balance]
+      properties:
+        claimed:
+          type: boolean
+          description: True when this call paid out the reward
+        alreadyClaimed:
+          type: boolean
+          description: True when the reward had already been claimed today
+        rewardCurrency:
+          type: string
+          enum: [coins, gems]
+        rewardAmount:
+          type: integer
+        balance:
+          $ref: "#/components/schemas/Wallet"
+
+    MysteryReward:
+      type: object
+      required: [type, amount, currency, avatarId]
+      properties:
+        type:
+          type: string
+          enum: [coins, gems, avatar]
+        amount:
+          type: integer
+          description: Currency amount for coins/gems rewards, 0 for an avatar
+        currency:
+          type: ["string", "null"]
+          enum: [coins, gems, null]
+          description: Currency kind for coins/gems rewards, null for an avatar
+        avatarId:
+          type: ["string", "null"]
+          description: Avatar look id for an avatar reward, null otherwise
+
+    MysteryBoxInfo:
+      type: object
+      required: [cost, currency, pool]
+      properties:
+        cost:
+          type: integer
+          description: Gems charged to open one box
+        currency:
+          type: string
+          enum: [coins, gems]
+        pool:
+          type: array
+          description: The possible rewards (odds are implied by repetition weight, not exposed)
+          items:
+            $ref: "#/components/schemas/MysteryReward"
+
+    OpenMysteryBoxInput:
+      type: object
+      required: [openId]
+      properties:
+        openId:
+          type: string
+          description: Client-generated idempotency key for this open attempt
+
+    OpenMysteryBoxResult:
+      type: object
+      required: [reward, balance, charged]
+      properties:
+        reward:
+          $ref: "#/components/schemas/MysteryReward"
+        balance:
+          $ref: "#/components/schemas/Wallet"
+        charged:
+          type: boolean
+          description: False when this was a replay of a previous open (idempotent)
 
     PlayerHome:
       type: object

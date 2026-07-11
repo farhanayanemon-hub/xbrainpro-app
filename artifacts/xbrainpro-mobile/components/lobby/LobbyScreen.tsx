@@ -19,9 +19,24 @@ import { buyAvatar, fetchWallet, formatAmount, type Wallet } from "@/lib/wallet"
 import { absoluteApiUrl } from "@/lib/session";
 import { playBack, playConfirm, playTap } from "@/lib/sfx";
 import AmbientFX from "@/components/lobby/AmbientFX";
+import DailyTasksPanel from "@/components/lobby/DailyTasksPanel";
 import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
+import MysteryBoxPanel from "@/components/lobby/MysteryBoxPanel";
 import StorePanel from "@/components/lobby/StorePanel";
+import {
+  claimTask,
+  fetchDailyTasks,
+  advanceTask,
+  type DailyState,
+} from "@/lib/dailyTasks";
+import {
+  fetchMysteryBox,
+  newOpenId,
+  openBox,
+  type MysteryBoxInfo,
+  type MysteryReward,
+} from "@/lib/mysteryBox";
 import {
   GENDER_AVATAR,
   loadAvatarId,
@@ -33,17 +48,29 @@ import {
 const C = colors.dark;
 const NATIVE = Platform.OS !== "web";
 
+/** Pull a human message out of an ApiError (customFetch throws .data.error). */
+function apiError(err: unknown, fallback: string): string {
+  return typeof err === "object" &&
+    err !== null &&
+    "data" in err &&
+    typeof (err as { data?: { error?: unknown } }).data?.error === "string"
+    ? (err as { data: { error: string } }).data.error
+    : fallback;
+}
+
 type MenuItem = {
   key: string;
   icon: string;
   label: string;
-  action: "play" | "friends" | "character" | "store";
+  action: "play" | "friends" | "character" | "store" | "daily" | "box";
 };
 
 // Only shipping features live here — placeholder tiles are added back when
 // their real feature lands, never as dead "coming soon" buttons.
 const MENU: MenuItem[] = [
   { key: "store", icon: "🛍️", label: "STORE", action: "store" },
+  { key: "daily", icon: "✅", label: "DAILY", action: "daily" },
+  { key: "box", icon: "🎁", label: "MYSTERY", action: "box" },
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character" },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends" },
 ];
@@ -279,6 +306,18 @@ export default function LobbyScreen({
 }) {
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
+  // Daily Tasks sheet + its server-owned board (login, streak, progress).
+  const [dailyOpen, setDailyOpen] = useState(false);
+  const [dailyState, setDailyState] = useState<DailyState | null>(null);
+  const [dailyLoading, setDailyLoading] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [dailyNotice, setDailyNotice] = useState<string | null>(null);
+  // Mystery Box sheet + its cost/pool and the latest reveal.
+  const [boxOpen, setBoxOpen] = useState(false);
+  const [boxInfo, setBoxInfo] = useState<MysteryBoxInfo | null>(null);
+  const [boxOpening, setBoxOpening] = useState(false);
+  const [boxReward, setBoxReward] = useState<MysteryReward | null>(null);
+  const [boxNotice, setBoxNotice] = useState<string | null>(null);
   // Unread private messages across all friends — badges the 👥 button.
   const [unreadTotal, setUnreadTotal] = useState(0);
   // The equipped look — this is what persists and carries into the city.
@@ -385,6 +424,84 @@ export default function LobbyScreen({
     setStoreOpen(false);
   };
 
+  // --- Daily Tasks -------------------------------------------------------- //
+  const openDaily = () => {
+    setDailyNotice(null);
+    setDailyOpen(true);
+    setDailyLoading(true);
+    // GET also counts today's login + advances the streak server-side.
+    void fetchDailyTasks()
+      .then((s) => setDailyState(s))
+      .catch(() => setDailyNotice("Couldn't load tasks. Try again."))
+      .finally(() => setDailyLoading(false));
+  };
+
+  const handleClaim = (taskId: string) => {
+    if (claimingId) return; // one claim at a time
+    setDailyNotice(null);
+    setClaimingId(taskId);
+    void claimTask(taskId)
+      .then((res) => {
+        setWallet(res.balance);
+        // Reflect the claim immediately without a round-trip.
+        setDailyState((prev) =>
+          prev
+            ? {
+                ...prev,
+                tasks: prev.tasks.map((t) =>
+                  t.id === taskId ? { ...t, claimed: true } : t,
+                ),
+              }
+            : prev,
+        );
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        setDailyNotice(apiError(err, "Couldn't claim reward. Try again."));
+        // Re-sync the board in case progress moved.
+        void fetchDailyTasks()
+          .then((s) => setDailyState(s))
+          .catch(() => {});
+      })
+      .finally(() => setClaimingId(null));
+  };
+
+  // --- Mystery Box -------------------------------------------------------- //
+  const openBoxSheet = () => {
+    setBoxNotice(null);
+    setBoxReward(null);
+    setBoxOpen(true);
+    void fetchMysteryBox()
+      .then((info) => setBoxInfo(info))
+      .catch(() => setBoxNotice("Couldn't load the box. Try again."));
+  };
+
+  const handleOpenBox = () => {
+    if (boxOpening) return; // one open at a time
+    setBoxNotice(null);
+    setBoxReward(null);
+    setBoxOpening(true);
+    const openId = newOpenId();
+    void openBox(openId)
+      .then(async (res) => {
+        setWallet(res.balance);
+        setBoxReward(res.reward);
+        if (res.reward.type === "avatar" && res.reward.avatarId) {
+          // Unlock the won look so it shows as owned in the Store.
+          const ids = await unlockAvatar(res.reward.avatarId);
+          setOwnedIds(ids);
+        }
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        setBoxNotice(apiError(err, "Couldn't open the box. Try again."));
+        void fetchWallet()
+          .then((w) => setWallet(w))
+          .catch(() => {});
+      })
+      .finally(() => setBoxOpening(false));
+  };
+
   const handleUnlock = (id: string) => {
     if (buyingId) return; // one purchase at a time
     setNotice(null);
@@ -398,15 +515,7 @@ export default function LobbyScreen({
       })
       .catch((err: unknown) => {
         // customFetch throws ApiError with .data.error on non-2xx.
-        const msg =
-          typeof err === "object" &&
-          err !== null &&
-          "data" in err &&
-          typeof (err as { data?: { error?: unknown } }).data?.error ===
-            "string"
-            ? (err as { data: { error: string } }).data.error
-            : "Couldn't complete purchase. Try again.";
-        setNotice(msg);
+        setNotice(apiError(err, "Couldn't complete purchase. Try again."));
         // Re-sync balance in case the server state moved.
         void fetchWallet()
           .then((w) => setWallet(w))
@@ -438,6 +547,14 @@ export default function LobbyScreen({
         break;
       case "store":
         openStore();
+        // Visiting the store counts toward its daily task (fire-and-forget).
+        void advanceTask("visit_store").catch(() => {});
+        break;
+      case "daily":
+        openDaily();
+        break;
+      case "box":
+        openBoxSheet();
         break;
       default:
         onPlay();
@@ -661,6 +778,37 @@ export default function LobbyScreen({
           onClose={() => {
             setNotice(null);
             closeStore();
+          }}
+        />
+      )}
+
+      {/* Daily Tasks bottom sheet */}
+      {dailyOpen && (
+        <DailyTasksPanel
+          state={dailyState}
+          loading={dailyLoading}
+          claimingId={claimingId}
+          notice={dailyNotice}
+          onClaim={handleClaim}
+          onClose={() => {
+            playBack();
+            setDailyOpen(false);
+          }}
+        />
+      )}
+
+      {/* Mystery Box bottom sheet */}
+      {boxOpen && (
+        <MysteryBoxPanel
+          info={boxInfo}
+          gems={wallet?.gems ?? 0}
+          opening={boxOpening}
+          reward={boxReward}
+          notice={boxNotice}
+          onOpen={handleOpenBox}
+          onClose={() => {
+            playBack();
+            setBoxOpen(false);
           }}
         />
       )}

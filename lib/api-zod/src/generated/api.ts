@@ -781,6 +781,112 @@ export const PurchaseAvatarResponse = zod.object({
 
 
 /**
+ * Also counts this call as today's login, auto-completing the check-in task and advancing the streak.
+ * @summary Get the player's daily task board and login streak
+ */
+export const GetDailyTasksResponse = zod.object({
+  "dayKey": zod.string().describe('UTC calendar day the board is for, e.g. \"2026-07-11\"'),
+  "streak": zod.number().describe('Consecutive days logged in, including today'),
+  "longestStreak": zod.number(),
+  "tasks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "goal": zod.number().describe('Progress needed to complete the task'),
+  "progress": zod.number().describe('Current progress, capped at goal'),
+  "completed": zod.boolean(),
+  "claimed": zod.boolean(),
+  "rewardCurrency": zod.enum(['coins', 'gems']),
+  "rewardAmount": zod.number()
+}))
+})
+
+
+/**
+ * Progress is capped at the task's goal server-side. Unknown task ids are ignored. Returns the refreshed board.
+ * @summary Record progress on a client-tracked daily task
+ */
+export const AdvanceDailyTaskParams = zod.object({
+  "taskId": zod.coerce.string()
+})
+
+export const AdvanceDailyTaskResponse = zod.object({
+  "dayKey": zod.string().describe('UTC calendar day the board is for, e.g. \"2026-07-11\"'),
+  "streak": zod.number().describe('Consecutive days logged in, including today'),
+  "longestStreak": zod.number(),
+  "tasks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "goal": zod.number().describe('Progress needed to complete the task'),
+  "progress": zod.number().describe('Current progress, capped at goal'),
+  "completed": zod.boolean(),
+  "claimed": zod.boolean(),
+  "rewardCurrency": zod.enum(['coins', 'gems']),
+  "rewardAmount": zod.number()
+}))
+})
+
+
+/**
+ * Pays the reward into the player's wallet. Idempotent — a task can only be claimed once per day.
+ * @summary Claim a completed daily task's reward
+ */
+export const ClaimDailyTaskParams = zod.object({
+  "taskId": zod.coerce.string()
+})
+
+export const ClaimDailyTaskResponse = zod.object({
+  "claimed": zod.boolean().describe('True when this call paid out the reward'),
+  "alreadyClaimed": zod.boolean().describe('True when the reward had already been claimed today'),
+  "rewardCurrency": zod.enum(['coins', 'gems']),
+  "rewardAmount": zod.number(),
+  "balance": zod.object({
+  "coins": zod.number().describe('Soft currency balance'),
+  "gems": zod.number().describe('Premium currency balance')
+})
+})
+
+
+/**
+ * @summary Get the Mystery Box cost and reward odds
+ */
+export const GetMysteryBoxResponse = zod.object({
+  "cost": zod.number().describe('Gems charged to open one box'),
+  "currency": zod.enum(['coins', 'gems']),
+  "pool": zod.array(zod.object({
+  "type": zod.enum(['coins', 'gems', 'avatar']),
+  "amount": zod.number().describe('Currency amount for coins\/gems rewards, 0 for an avatar'),
+  "currency": zod.union([zod.literal('coins'),zod.literal('gems'),zod.literal(null)]).nullable().describe('Currency kind for coins\/gems rewards, null for an avatar'),
+  "avatarId": zod.string().nullable().describe('Avatar look id for an avatar reward, null otherwise')
+})).describe('The possible rewards (odds are implied by repetition weight, not exposed)')
+})
+
+
+/**
+ * Charges gems and returns a weighted random reward, atomically. Send a unique openId per attempt so a retry is idempotent.
+ * @summary Open the Mystery Box for a random reward
+ */
+export const OpenMysteryBoxBody = zod.object({
+  "openId": zod.string().describe('Client-generated idempotency key for this open attempt')
+})
+
+export const OpenMysteryBoxResponse = zod.object({
+  "reward": zod.object({
+  "type": zod.enum(['coins', 'gems', 'avatar']),
+  "amount": zod.number().describe('Currency amount for coins\/gems rewards, 0 for an avatar'),
+  "currency": zod.union([zod.literal('coins'),zod.literal('gems'),zod.literal(null)]).nullable().describe('Currency kind for coins\/gems rewards, null for an avatar'),
+  "avatarId": zod.string().nullable().describe('Avatar look id for an avatar reward, null otherwise')
+}),
+  "balance": zod.object({
+  "coins": zod.number().describe('Soft currency balance'),
+  "gems": zod.number().describe('Premium currency balance')
+}),
+  "charged": zod.boolean().describe('False when this was a replay of a previous open (idempotent)')
+})
+
+
+/**
  * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
  * @summary Get the current Neura City world map
  */

@@ -10,6 +10,7 @@ import friendsRouter from "./friends";
 import dmRouter from "./dm";
 import moderationRouter from "./moderation";
 import walletRouter from "./wallet";
+import engagementRouter from "./engagement";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(friendsRouter);
 router.use(dmRouter);
 router.use(moderationRouter);
 router.use(walletRouter);
+router.use(engagementRouter);
 
 export default router;

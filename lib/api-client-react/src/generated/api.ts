@@ -26,12 +26,17 @@ import type {
   ChatMessage,
   ChatMessageInput,
   ChatReply,
+  ClaimResult,
+  DailyState,
   DashboardSummary,
   Error,
   HealthStatus,
   LoginInput,
+  MysteryBoxInfo,
   NpcChatInput,
   NpcChatReply,
+  OpenMysteryBoxInput,
+  OpenMysteryBoxResult,
   Path,
   PlayerHome,
   PlayerPhotoUpload,
@@ -2733,6 +2738,374 @@ export const usePurchaseAvatar = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getPurchaseAvatarMutationOptions(options));
+    }
+
+export const getGetDailyTasksUrl = () => {
+
+
+
+
+  return `/api/daily-tasks`
+}
+
+/**
+ * Also counts this call as today's login, auto-completing the check-in task and advancing the streak.
+ * @summary Get the player's daily task board and login streak
+ */
+export const getDailyTasks = async ( options?: RequestInit): Promise<DailyState> => {
+
+  return customFetch<DailyState>(getGetDailyTasksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDailyTasksQueryKey = () => {
+    return [
+    `/api/daily-tasks`
+    ] as const;
+    }
+
+
+export const getGetDailyTasksQueryOptions = <TData = Awaited<ReturnType<typeof getDailyTasks>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDailyTasksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyTasks>>> = ({ signal }) => getDailyTasks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDailyTasks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDailyTasksQueryResult = NonNullable<Awaited<ReturnType<typeof getDailyTasks>>>
+export type GetDailyTasksQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the player's daily task board and login streak
+ */
+
+export function useGetDailyTasks<TData = Awaited<ReturnType<typeof getDailyTasks>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailyTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDailyTasksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdvanceDailyTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/api/daily-tasks/${taskId}/advance`
+}
+
+/**
+ * Progress is capped at the task's goal server-side. Unknown task ids are ignored. Returns the refreshed board.
+ * @summary Record progress on a client-tracked daily task
+ */
+export const advanceDailyTask = async (taskId: string, options?: RequestInit): Promise<DailyState> => {
+
+  return customFetch<DailyState>(getAdvanceDailyTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdvanceDailyTaskMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceDailyTask>>, TError,{taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof advanceDailyTask>>, TError,{taskId: string}, TContext> => {
+
+const mutationKey = ['advanceDailyTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof advanceDailyTask>>, {taskId: string}> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  advanceDailyTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdvanceDailyTaskMutationResult = NonNullable<Awaited<ReturnType<typeof advanceDailyTask>>>
+
+    export type AdvanceDailyTaskMutationError = ErrorType<Error>
+
+    /**
+ * @summary Record progress on a client-tracked daily task
+ */
+export const useAdvanceDailyTask = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceDailyTask>>, TError,{taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof advanceDailyTask>>,
+        TError,
+        {taskId: string},
+        TContext
+      > => {
+      return useMutation(getAdvanceDailyTaskMutationOptions(options));
+    }
+
+export const getClaimDailyTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/api/daily-tasks/${taskId}/claim`
+}
+
+/**
+ * Pays the reward into the player's wallet. Idempotent — a task can only be claimed once per day.
+ * @summary Claim a completed daily task's reward
+ */
+export const claimDailyTask = async (taskId: string, options?: RequestInit): Promise<ClaimResult> => {
+
+  return customFetch<ClaimResult>(getClaimDailyTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getClaimDailyTaskMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyTask>>, TError,{taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimDailyTask>>, TError,{taskId: string}, TContext> => {
+
+const mutationKey = ['claimDailyTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimDailyTask>>, {taskId: string}> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  claimDailyTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimDailyTaskMutationResult = NonNullable<Awaited<ReturnType<typeof claimDailyTask>>>
+
+    export type ClaimDailyTaskMutationError = ErrorType<Error>
+
+    /**
+ * @summary Claim a completed daily task's reward
+ */
+export const useClaimDailyTask = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyTask>>, TError,{taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimDailyTask>>,
+        TError,
+        {taskId: string},
+        TContext
+      > => {
+      return useMutation(getClaimDailyTaskMutationOptions(options));
+    }
+
+export const getGetMysteryBoxUrl = () => {
+
+
+
+
+  return `/api/mystery-box`
+}
+
+/**
+ * @summary Get the Mystery Box cost and reward odds
+ */
+export const getMysteryBox = async ( options?: RequestInit): Promise<MysteryBoxInfo> => {
+
+  return customFetch<MysteryBoxInfo>(getGetMysteryBoxUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMysteryBoxQueryKey = () => {
+    return [
+    `/api/mystery-box`
+    ] as const;
+    }
+
+
+export const getGetMysteryBoxQueryOptions = <TData = Awaited<ReturnType<typeof getMysteryBox>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMysteryBox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMysteryBoxQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMysteryBox>>> = ({ signal }) => getMysteryBox({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMysteryBox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMysteryBoxQueryResult = NonNullable<Awaited<ReturnType<typeof getMysteryBox>>>
+export type GetMysteryBoxQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the Mystery Box cost and reward odds
+ */
+
+export function useGetMysteryBox<TData = Awaited<ReturnType<typeof getMysteryBox>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMysteryBox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMysteryBoxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getOpenMysteryBoxUrl = () => {
+
+
+
+
+  return `/api/mystery-box/open`
+}
+
+/**
+ * Charges gems and returns a weighted random reward, atomically. Send a unique openId per attempt so a retry is idempotent.
+ * @summary Open the Mystery Box for a random reward
+ */
+export const openMysteryBox = async (openMysteryBoxInput: OpenMysteryBoxInput, options?: RequestInit): Promise<OpenMysteryBoxResult> => {
+
+  return customFetch<OpenMysteryBoxResult>(getOpenMysteryBoxUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(openMysteryBoxInput)
+  }
+);}
+
+
+
+
+export const getOpenMysteryBoxMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openMysteryBox>>, TError,{data: BodyType<OpenMysteryBoxInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openMysteryBox>>, TError,{data: BodyType<OpenMysteryBoxInput>}, TContext> => {
+
+const mutationKey = ['openMysteryBox'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openMysteryBox>>, {data: BodyType<OpenMysteryBoxInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  openMysteryBox(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenMysteryBoxMutationResult = NonNullable<Awaited<ReturnType<typeof openMysteryBox>>>
+    export type OpenMysteryBoxMutationBody = BodyType<OpenMysteryBoxInput>
+    export type OpenMysteryBoxMutationError = ErrorType<Error>
+
+    /**
+ * @summary Open the Mystery Box for a random reward
+ */
+export const useOpenMysteryBox = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openMysteryBox>>, TError,{data: BodyType<OpenMysteryBoxInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openMysteryBox>>,
+        TError,
+        {data: BodyType<OpenMysteryBoxInput>},
+        TContext
+      > => {
+      return useMutation(getOpenMysteryBoxMutationOptions(options));
     }
 
 export const getGetWorldMapUrl = () => {
