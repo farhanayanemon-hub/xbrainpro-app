@@ -8,6 +8,7 @@ import worldRouter from "./world";
 import assetsRouter from "./assets";
 import friendsRouter from "./friends";
 import dmRouter from "./dm";
+import moderationRouter from "./moderation";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(worldRouter);
 router.use(assetsRouter);
 router.use(friendsRouter);
 router.use(dmRouter);
+router.use(moderationRouter);
 
 export default router;

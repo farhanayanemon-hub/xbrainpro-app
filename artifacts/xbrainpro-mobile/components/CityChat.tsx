@@ -14,10 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fonts } from "@/constants/colors";
 import {
   CHAT_MAX_LEN,
+  SYSTEM_CHAT_ID,
+  getMyId,
   sendChat,
   subscribeChat,
   type ChatMessage,
 } from "@/game/net";
+import { reportChatMessage } from "@/lib/moderation";
 
 const NAME_COLORS = [
   "#7cc0ff",
@@ -51,6 +54,8 @@ export default function CityChat({
   const insets = useSafeAreaInsets();
   const [feed, setFeed] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [reportTarget, setReportTarget] = useState<ChatMessage | null>(null);
+  const [reportNote, setReportNote] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => subscribeChat(setFeed), []);
@@ -69,6 +74,25 @@ export default function CityChat({
     if (!text) return;
     sendChat(text);
     setInput("");
+  };
+
+  /** Long-press: offer to report someone else's message. */
+  const onLongPressMessage = (m: ChatMessage) => {
+    if (m.id === SYSTEM_CHAT_ID || m.id === getMyId()) return;
+    setReportNote(null);
+    setReportTarget(m);
+  };
+
+  const submitReport = async () => {
+    const target = reportTarget;
+    if (!target) return;
+    setReportTarget(null);
+    try {
+      await reportChatMessage(target.id, target.text, target.ts);
+      setReportNote(`Reported ${target.name} — thanks for keeping it friendly.`);
+    } catch (err) {
+      setReportNote(err instanceof Error ? err.message : "Report failed");
+    }
   };
 
   if (!open) {
@@ -136,15 +160,50 @@ export default function CityChat({
                 No messages yet — say hi to the city!
               </Text>
             )}
-            {feed.map((m) => (
-              <Text key={`${m.id}-${m.ts}`} style={styles.line}>
-                <Text style={[styles.lineName, { color: nameColor(m.id) }]}>
-                  {m.name}:{" "}
+            {feed.map((m) =>
+              m.id === SYSTEM_CHAT_ID ? (
+                <Text key={`${m.id}-${m.ts}`} style={styles.systemLine}>
+                  {m.text}
                 </Text>
-                {m.text}
-              </Text>
-            ))}
+              ) : (
+                <Pressable
+                  key={`${m.id}-${m.ts}`}
+                  onLongPress={() => onLongPressMessage(m)}
+                  delayLongPress={350}
+                >
+                  <Text style={styles.line}>
+                    <Text style={[styles.lineName, { color: nameColor(m.id) }]}>
+                      {m.name}:{" "}
+                    </Text>
+                    {m.text}
+                  </Text>
+                </Pressable>
+              ),
+            )}
           </ScrollView>
+          {reportTarget && (
+            <View style={styles.reportBar}>
+              <Text style={styles.reportText} numberOfLines={2}>
+                Report {reportTarget.name}'s message?
+              </Text>
+              <View style={styles.reportActions}>
+                <Pressable
+                  style={styles.reportCancelBtn}
+                  onPress={() => setReportTarget(null)}
+                >
+                  <Text style={styles.reportCancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={styles.reportBtn} onPress={submitReport}>
+                  <Text style={styles.reportBtnText}>Report</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+          {!reportTarget && reportNote && (
+            <Text style={styles.reportNote} numberOfLines={2}>
+              {reportNote}
+            </Text>
+          )}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
@@ -255,6 +314,61 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   lineName: { fontFamily: fonts.bold },
+  systemLine: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#ffd27c",
+    fontStyle: "italic",
+  },
+  reportBar: {
+    backgroundColor: "rgba(255,120,90,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,120,90,0.4)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+    marginTop: 4,
+  },
+  reportText: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.92)",
+  },
+  reportActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  reportCancelBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  reportCancelText: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+  },
+  reportBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "#e5484d",
+  },
+  reportBtnText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: "#fff",
+  },
+  reportNote: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.65)",
+    paddingTop: 4,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",

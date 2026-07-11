@@ -59,6 +59,9 @@ export interface ChatMessage {
   ts: number;
 }
 
+/** Sender id used for local, client-only system notices in the feed. */
+export const SYSTEM_CHAT_ID = "sys";
+
 export const CHAT_MAX_LEN = 120;
 const CHAT_FEED_MAX = 50;
 
@@ -131,6 +134,11 @@ const rosterListeners = new Set<RosterListener>();
 function emitRoster(): void {
   const ids = [...remote.keys()];
   for (const cb of rosterListeners) cb(ids);
+}
+
+/** The local player's public id ("uNN"), once the server has welcomed us. */
+export function getMyId(): string | null {
+  return myId;
 }
 
 export function subscribeRoster(cb: RosterListener): () => void {
@@ -248,6 +256,28 @@ function handleMessage(raw: string): void {
         break;
       }
       for (const cb of dmListeners) cb(m);
+      break;
+    }
+    case "muted": {
+      // The server rejected our message: we're muted. Surface a private,
+      // local-only notice in the feed (nobody else sees it).
+      const until = Number(msg["until"]) || 0;
+      const when = until
+        ? new Date(until).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "";
+      chatFeed.push({
+        id: SYSTEM_CHAT_ID,
+        name: "City",
+        text: when
+          ? `You are muted until ${when}. Keep it friendly!`
+          : "You are muted. Keep it friendly!",
+        ts: Date.now(),
+      });
+      if (chatFeed.length > CHAT_FEED_MAX) chatFeed.shift();
+      emitChat();
       break;
     }
     case "chatlog": {

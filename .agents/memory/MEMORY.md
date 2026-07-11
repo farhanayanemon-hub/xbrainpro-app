@@ -15,3 +15,4 @@
 - [Friends presence & join](friends-presence-join.md) — online != joinable (hidden friends have null position); gate Join on position; requests via displayName + onConflictDoNothing.
 - [City HUD overlay layering](city-hud-overlays.md) — modal backdrops only block controls mounted before them; mount modal overlays last in city.tsx or use RN Modal.
 - [Validation workflow conversion](validation-workflow-conversion.md) — change the "test" workflow only via setValidationCommand; configureWorkflow drops isValidation.
+- [Chat moderation design](chat-moderation.md) — mutes are DB row + live socket state; always mute via the moderation helper; profanity filter must stay synchronous.

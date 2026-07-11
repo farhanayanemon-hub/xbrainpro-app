@@ -13,3 +13,4 @@ export * from "./world";
 export * from "./gameAssets";
 export * from "./friendships";
 export * from "./directMessages";
+export * from "./moderation";

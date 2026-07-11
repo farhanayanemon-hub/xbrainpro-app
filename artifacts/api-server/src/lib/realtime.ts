@@ -4,6 +4,15 @@ import { db, playerProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { resolveUserByToken } from "./auth";
 import { logger } from "./logger";
+import { filterProfanity } from "./profanity";
+import {
+  getMuteUntil,
+  muteUser,
+  registerLiveMuteHook,
+  PROFANITY_AUTO_MUTE_MS,
+  PROFANITY_STRIKE_THRESHOLD,
+  PROFANITY_STRIKE_WINDOW_MS,
+} from "./moderation";
 
 /**
  * Realtime co-presence for Neura City. A WebSocket server rides on the same
@@ -27,6 +36,7 @@ import { logger } from "./logger";
  *     { t: "chatlog", messages: ChatWire[] }  recent history, once on connect
  *     { t: "dm", msg: DmWire }                private message (pushed by the
  *                                             REST layer via deliverToUser)
+ *     { t: "muted", until }                   your chat is muted until (ms epoch)
  */
 
 const WORLD_LIMIT = 60; // generous clamp; city bound is ~34
@@ -57,6 +67,10 @@ interface Client {
   alive: boolean;
   lastMoveAt: number;
   lastChatAt: number;
+  /** Chat is blocked while Date.now() < mutedUntil (0 = not muted). */
+  mutedUntil: number;
+  /** Timestamps of recent messages that tripped the profanity filter. */
+  profanityStrikes: number[];
 }
 
 interface PlayerWire {
@@ -139,6 +153,16 @@ export function attachRealtime(server: Server): WebSocketServer {
   const clients = new Map<string, Client>();
   liveClients = clients;
 
+  // Push DB-side mutes (reports/admin) into live sockets immediately.
+  registerLiveMuteHook((userId, untilMs) => {
+    const c = clients.get(`u${userId}`);
+    if (!c) return;
+    c.mutedUntil = untilMs;
+    if (untilMs > Date.now()) {
+      send(c.ws, { t: "muted", until: untilMs });
+    }
+  });
+
   // Session-only city chat history so newcomers see recent conversation.
   const chatHistory: ChatWire[] = [];
 
@@ -184,6 +208,7 @@ export function attachRealtime(server: Server): WebSocketServer {
     let user: Awaited<ReturnType<typeof resolveUserByToken>>;
     let profileName = "Citizen";
     let profileGender = "male";
+    let mutedUntil = 0;
     try {
       user = await resolveUserByToken(token);
       if (!user) {
@@ -201,6 +226,7 @@ export function attachRealtime(server: Server): WebSocketServer {
         .where(eq(playerProfilesTable.userId, user.id));
       profileName = profile?.displayName?.slice(0, 24) || "Citizen";
       profileGender = profile?.gender || "male";
+      mutedUntil = (await getMuteUntil(user.id)) ?? 0;
     } catch (err) {
       logger.error({ err }, "Realtime auth/profile lookup failed");
       send(ws, { t: "error", reason: "server_error" });
@@ -242,6 +268,8 @@ export function attachRealtime(server: Server): WebSocketServer {
       alive: true,
       lastMoveAt: 0,
       lastChatAt: 0,
+      mutedUntil,
+      profanityStrikes: [],
     };
     clients.set(id, client);
     registeredId = id;
@@ -305,11 +333,36 @@ export function attachRealtime(server: Server): WebSocketServer {
           // limits apply. Text is trimmed and hard-capped server-side.
           const now = Date.now();
           if (now - client.lastChatAt < CHAT_MIN_INTERVAL_MS) return;
+          // Muted players get a private notice instead of a broadcast.
+          if (now < client.mutedUntil) {
+            send(ws, { t: "muted", until: client.mutedUntil });
+            break;
+          }
           const raw = msg["text"];
           if (typeof raw !== "string") break;
-          const text = raw.trim().slice(0, CHAT_MAX_LEN);
-          if (!text) break;
+          const trimmed = raw.trim().slice(0, CHAT_MAX_LEN);
+          if (!trimmed) break;
           client.lastChatAt = now;
+          // Mask profanity before anyone (including the sender) sees it, and
+          // count a strike. Repeat offenders are auto-muted for a while.
+          const { text, hadProfanity } = filterProfanity(trimmed);
+          if (hadProfanity) {
+            client.profanityStrikes = client.profanityStrikes.filter(
+              (ts) => now - ts < PROFANITY_STRIKE_WINDOW_MS,
+            );
+            client.profanityStrikes.push(now);
+            if (client.profanityStrikes.length >= PROFANITY_STRIKE_THRESHOLD) {
+              const until = now + PROFANITY_AUTO_MUTE_MS;
+              client.mutedUntil = until;
+              client.profanityStrikes = [];
+              // Persist async; the in-memory mute already blocks this socket.
+              muteUser(client.userId, until, "profanity").catch((err) =>
+                logger.error({ err }, "Failed to persist profanity auto-mute"),
+              );
+              send(ws, { t: "muted", until });
+              break;
+            }
+          }
           const entry: ChatWire = { id, name: client.name, text, ts: now };
           chatHistory.push(entry);
           if (chatHistory.length > CHAT_HISTORY_MAX) chatHistory.shift();
