@@ -36,16 +36,15 @@ type MenuItem = {
   key: string;
   icon: string;
   label: string;
-  action: "play" | "friends" | "character" | "store" | "soon";
-  ready: boolean;
+  action: "play" | "friends" | "character" | "store";
 };
 
+// Only shipping features live here — placeholder tiles are added back when
+// their real feature lands, never as dead "coming soon" buttons.
 const MENU: MenuItem[] = [
-  { key: "store", icon: "🛍️", label: "STORE", action: "store", ready: true },
-  { key: "character", icon: "🧍", label: "CHARACTER", action: "character", ready: true },
-  { key: "friends", icon: "👥", label: "FRIENDS", action: "friends", ready: true },
-  { key: "events", icon: "🎉", label: "EVENTS", action: "soon", ready: false },
-  { key: "maps", icon: "🗺️", label: "MAPS", action: "soon", ready: false },
+  { key: "store", icon: "🛍️", label: "STORE", action: "store" },
+  { key: "character", icon: "🧍", label: "CHARACTER", action: "character" },
+  { key: "friends", icon: "👥", label: "FRIENDS", action: "friends" },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -112,11 +111,6 @@ function MenuTab({
                 <Text style={styles.menuIcon}>{item.icon}</Text>
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
-              {!item.ready && (
-                <View style={styles.soonBadge}>
-                  <Text style={styles.soonBadgeText}>SOON</Text>
-                </View>
-              )}
             </View>
           </>
         )}
@@ -282,7 +276,6 @@ export default function LobbyScreen({
   onLogout: () => void;
   onJoinFriend: (target: JoinTarget) => void;
 }) {
-  const [comingSoon, setComingSoon] = useState<MenuItem | null>(null);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   // Unread private messages across all friends — badges the 👥 button.
@@ -405,9 +398,6 @@ export default function LobbyScreen({
         break;
       case "store":
         openStore();
-        break;
-      case "soon":
-        setComingSoon(item);
         break;
       default:
         onPlay();
@@ -615,34 +605,6 @@ export default function LobbyScreen({
         />
       )}
 
-      {/* Coming soon modal */}
-      {comingSoon && (
-        <Modal
-          transparent
-          animationType="fade"
-          onRequestClose={() => setComingSoon(null)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalIcon}>{comingSoon.icon}</Text>
-              <Text style={styles.modalTitle}>{comingSoon.label}</Text>
-              <Text style={styles.modalBody}>
-                This district is still under construction. Coming soon to
-                Neura City!
-              </Text>
-              <Pressable
-                style={styles.modalBtn}
-                onPress={() => {
-                  playTap();
-                  setComingSoon(null);
-                }}
-              >
-                <Text style={styles.modalBtnText}>Got it</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 }
