@@ -5,16 +5,21 @@ import {
   getCurrentUser,
   getPlayerProfile,
   logout as apiLogout,
+  upsertPlayerProfile,
   type AuthResult,
   type PlayerProfile,
 } from "@workspace/api-client-react";
 
 import AuthScreen from "@/components/lobby/AuthScreen";
+import CharacterSelect from "@/components/lobby/CharacterSelect";
+import Customize from "@/components/lobby/Customize";
 import LoadingScreen from "@/components/lobby/LoadingScreen";
 import LobbyScreen from "@/components/lobby/LobbyScreen";
+import NameSetup from "@/components/lobby/NameSetup";
 import ProfileSetup from "@/components/lobby/ProfileSetup";
+import Terms from "@/components/lobby/Terms";
 import colors, { fonts } from "@/constants/colors";
-import { GENDER_AVATAR, loadAvatarId } from "@/game/avatar";
+import { GENDER_AVATAR, loadAvatarId, saveAvatarId, type AvatarGender } from "@/game/avatar";
 import { prepareLobby } from "@/game/resources";
 import { absoluteApiUrl, clearToken, loadToken, saveToken } from "@/lib/session";
 
@@ -24,7 +29,10 @@ type Stage =
   | "loading"
   | "preparing"
   | "auth"
-  | "setup"
+  | "terms"
+  | "name"
+  | "character"
+  | "customize"
   | "editing"
   | "lobby"
   | "error";
@@ -39,11 +47,13 @@ function errStatus(e: unknown): number | undefined {
  * lobby with a mock profile (no login), so the UI can be reviewed on its own.
  * Compiled out of production and never active on native.
  */
+const PREVIEW_PARAM =
+  __DEV__ && Platform.OS === "web" && typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("preview")
+    : null;
+
 const PREVIEW_PROFILE: PlayerProfile | null =
-  __DEV__ &&
-  Platform.OS === "web" &&
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("preview") === "lobby"
+  PREVIEW_PARAM === "lobby"
     ? {
         userId: 0,
         displayName: "Nova",
@@ -53,16 +63,42 @@ const PREVIEW_PROFILE: PlayerProfile | null =
       }
     : null;
 
+/** Dev-only: jump straight to an onboarding step via `?preview=terms|name|character|customize`. */
+const PREVIEW_STAGE: Stage | null =
+  PREVIEW_PARAM === "terms" ||
+  PREVIEW_PARAM === "name" ||
+  PREVIEW_PARAM === "character" ||
+  PREVIEW_PARAM === "customize"
+    ? (PREVIEW_PARAM as Stage)
+    : null;
+
 export default function Gate() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>(
-    PREVIEW_PROFILE ? "lobby" : "loading",
+    PREVIEW_PROFILE ? "lobby" : PREVIEW_STAGE ?? "loading",
   );
   const [profile, setProfile] = useState<PlayerProfile | null>(
     PREVIEW_PROFILE,
   );
   // 0..1 progress of the lobby "preparing" phase (scene + avatar download).
   const [prepProgress, setPrepProgress] = useState(0);
+
+  // Onboarding accumulator: Terms → Name → Character → Customize.
+  const [onbName, setOnbName] = useState("");
+  const [onbGender, setOnbGender] = useState<AvatarGender>("male");
+  const [onbAvatarId, setOnbAvatarId] = useState<string>(GENDER_AVATAR.male);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Start the multi-step onboarding for a freshly-authed user without a profile.
+  const startOnboarding = useCallback(() => {
+    setOnbName("");
+    setOnbGender("male");
+    setOnbAvatarId(GENDER_AVATAR.male);
+    setSaveError(null);
+    setSaveBusy(false);
+    setStage("terms");
+  }, []);
 
   // Show the Avakin-style loading screen while the lobby's 3D room + the
   // player's avatar download, with a real progress bar, then reveal the lobby.
@@ -119,7 +155,7 @@ export default function Gate() {
     } catch (e) {
       const status = errStatus(e);
       if (status === 404) {
-        setStage("setup"); // logged in but no profile yet
+        startOnboarding(); // logged in but no profile yet
       } else if (status === 401) {
         await clearToken();
         setStage("auth");
@@ -127,10 +163,10 @@ export default function Gate() {
         setStage("error");
       }
     }
-  }, [enterLobby]);
+  }, [enterLobby, startOnboarding]);
 
   useEffect(() => {
-    if (PREVIEW_PROFILE) return; // skip auth in preview mode
+    if (PREVIEW_PROFILE || PREVIEW_STAGE) return; // skip auth in preview mode
     let cancelled = false;
     void (async () => {
       if (!cancelled) await restore();
@@ -144,7 +180,7 @@ export default function Gate() {
     await saveToken(result.token);
     if (isNew) {
       setProfile(null);
-      setStage("setup");
+      startOnboarding();
       return;
     }
     try {
@@ -153,12 +189,12 @@ export default function Gate() {
     } catch (e) {
       // Existing account without a profile still needs setup; only 404 means that.
       if (errStatus(e) === 404) {
-        setStage("setup");
+        startOnboarding();
       } else {
         setStage("error");
       }
     }
-  }, [enterLobby]);
+  }, [enterLobby, startOnboarding]);
 
   const handleProfileDone = useCallback(
     (p: PlayerProfile) => {
@@ -166,6 +202,30 @@ export default function Gate() {
     },
     [enterLobby],
   );
+
+  // Final onboarding step: persist the collected name + gender + avatar, then
+  // stream the lobby. Errors surface on the Customize screen so the user can
+  // retry without losing their choices.
+  const finishOnboarding = useCallback(async () => {
+    setSaveBusy(true);
+    setSaveError(null);
+    try {
+      const p = await upsertPlayerProfile({
+        displayName: onbName.trim(),
+        gender: onbGender,
+      });
+      await saveAvatarId(onbAvatarId);
+      setSaveBusy(false);
+      await enterLobby(p);
+    } catch (e) {
+      const msg =
+        (e as { data?: { error?: string } })?.data?.error ||
+        (e as Error).message ||
+        "Could not create your citizen";
+      setSaveError(msg);
+      setSaveBusy(false);
+    }
+  }, [onbName, onbGender, onbAvatarId, enterLobby]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -210,14 +270,65 @@ export default function Gate() {
     return <AuthScreen onAuthed={handleAuthed} />;
   }
 
-  if (stage === "setup" || stage === "editing") {
+  if (stage === "terms") {
+    return (
+      <Terms
+        onAccept={() => setStage("name")}
+        onDecline={() => void handleLogout()}
+      />
+    );
+  }
+
+  if (stage === "name") {
+    return (
+      <NameSetup
+        initialName={onbName}
+        onNext={(name) => {
+          setOnbName(name);
+          setStage("character");
+        }}
+        onBack={() => setStage("terms")}
+      />
+    );
+  }
+
+  if (stage === "character") {
+    return (
+      <CharacterSelect
+        initialGender={onbGender}
+        onNext={(gender, avatarId) => {
+          setOnbGender(gender);
+          setOnbAvatarId(avatarId);
+          setStage("customize");
+        }}
+        onBack={() => setStage("name")}
+      />
+    );
+  }
+
+  if (stage === "customize") {
+    return (
+      <Customize
+        gender={onbGender}
+        avatarId={onbAvatarId}
+        playerName={onbName}
+        busy={saveBusy}
+        error={saveError}
+        onFinish={() => void finishOnboarding()}
+        onBack={() => {
+          setSaveError(null);
+          setStage("character");
+        }}
+      />
+    );
+  }
+
+  if (stage === "editing") {
     return (
       <ProfileSetup
-        initial={stage === "editing" ? profile : null}
+        initial={profile}
         onDone={handleProfileDone}
-        onCancel={
-          stage === "editing" ? () => setStage("lobby") : undefined
-        }
+        onCancel={() => setStage("lobby")}
       />
     );
   }
