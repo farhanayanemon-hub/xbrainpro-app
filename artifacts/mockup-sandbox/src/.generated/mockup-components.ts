@@ -3,5 +3,11 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/neura-city/ChatOverlay.tsx": () => import("../components/mockups/neura-city/ChatOverlay.tsx"),
   "./components/mockups/neura-city/TalkPrompt.tsx": () => import("../components/mockups/neura-city/TalkPrompt.tsx"),
-  "./components/mockups/neura-city/WorldView.tsx": () => import("../components/mockups/neura-city/WorldView.tsx")
+  "./components/mockups/neura-city/WorldView.tsx": () => import("../components/mockups/neura-city/WorldView.tsx"),
+  "./components/mockups/neura-lux/Lobby.tsx": () => import("../components/mockups/neura-lux/Lobby.tsx"),
+  "./components/mockups/neura-lux/Login.tsx": () => import("../components/mockups/neura-lux/Login.tsx"),
+  "./components/mockups/neura-neon/Lobby.tsx": () => import("../components/mockups/neura-neon/Lobby.tsx"),
+  "./components/mockups/neura-neon/Login.tsx": () => import("../components/mockups/neura-neon/Login.tsx"),
+  "./components/mockups/neura-soft/Lobby.tsx": () => import("../components/mockups/neura-soft/Lobby.tsx"),
+  "./components/mockups/neura-soft/Login.tsx": () => import("../components/mockups/neura-soft/Login.tsx")
 };

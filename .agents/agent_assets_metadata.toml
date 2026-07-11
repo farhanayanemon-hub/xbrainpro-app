@@ -18,3 +18,45 @@ id = "hC7c7pkPreNJh0QDt10hy"
 uri = "file://artifacts/mockup-sandbox/public/images/neura-city-npc.png"
 type = "image"
 title = "npc view neura city"
+
+[[generated]]
+id = "Ll1GGfdvcaMGQ6sRIoyBp"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-lux-bg.png"
+type = "image"
+title = "Luxurious neon-gold night city skyline"
+
+[[generated]]
+id = "CuAorSJiY3u5DImMgEQLy"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-lux-avatar.png"
+type = "image"
+title = "Fashionable polished 3D avatar hero"
+
+[[generated]]
+id = "ScpZVinWN7dCLIgVrXa7t"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-neon-bg-login.png"
+type = "image"
+title = "Neon city background"
+
+[[generated]]
+id = "iH3n9QfPHNR69_T4ml8iO"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-neon-avatar.png"
+type = "image"
+title = "Neon 3D game avatar"
+
+[[generated]]
+id = "QENkfMRFMbIv0pyVltnys"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-neon-bg-lobby.png"
+type = "image"
+title = "Dark neon lobby background"
+
+[[generated]]
+id = "GmoBd8P1JSWrr8UwlawIb"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-soft-bg.png"
+type = "image"
+title = "Pastel city at golden hour"
+
+[[generated]]
+id = "JPnJiTfkAlEDER_-G1V3L"
+uri = "file://artifacts/mockup-sandbox/public/images/neura-soft-avatar.png"
+type = "image"
+title = "Cute 3D chibi game avatar"

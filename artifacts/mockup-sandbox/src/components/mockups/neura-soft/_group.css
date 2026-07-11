@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+.neura-soft-theme {
+  font-family: 'Nunito', sans-serif;
+}
+
+.soft-glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.soft-button-primary {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%);
+  border: 3px solid #FFF;
+  box-shadow: 0 6px 0 #FF758C, 0 10px 20px rgba(255, 117, 140, 0.4);
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(255, 117, 140, 0.8);
+  transition: all 0.1s;
+}
+.soft-button-primary:active {
+  transform: translateY(6px);
+  box-shadow: 0 0px 0 #FF758C, 0 4px 10px rgba(255, 117, 140, 0.4);
+}
+
+.soft-button-secondary {
+  background: linear-gradient(135deg, #A1C4FD 0%, #C2E9FB 100%);
+  border: 3px solid #FFF;
+  box-shadow: 0 6px 0 #84A9F0, 0 10px 20px rgba(161, 196, 253, 0.4);
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(132, 169, 240, 0.8);
+  transition: all 0.1s;
+}
+.soft-button-secondary:active {
+  transform: translateY(6px);
+  box-shadow: 0 0px 0 #84A9F0, 0 4px 10px rgba(161, 196, 253, 0.4);
+}
+
+.soft-button-tertiary {
+  background: linear-gradient(135deg, #FDFBFB 0%, #EBEDEE 100%);
+  border: 3px solid #FFF;
+  box-shadow: 0 6px 0 #D3D6D8, 0 10px 20px rgba(0, 0, 0, 0.1);
+  color: #555;
+  transition: all 0.1s;
+}
+.soft-button-tertiary:active {
+  transform: translateY(6px);
+  box-shadow: 0 0px 0 #D3D6D8, 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.soft-hud-pill {
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  backdrop-filter: blur(4px);
+}
+
+.candy-text {
+  background: -webkit-linear-gradient(45deg, #FF9A9E, #FECFEF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(255,154,158,0.3));
+}
+
+.candy-text-white {
+  color: #fff;
+  text-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 0 10px rgba(255,255,255,0.8);
+}

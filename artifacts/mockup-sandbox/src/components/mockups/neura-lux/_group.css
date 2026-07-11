@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+.neura-lux {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  --gold-primary: #d4af37;
+  --gold-light: #f3e5ab;
+  --gold-dark: #aa7c11;
+  --navy-bg: #0a0e17;
+  --navy-panel: rgba(10, 14, 23, 0.75);
+}
+
+.neura-lux-title {
+  font-family: 'Playfair Display', serif;
+}
+
+.neura-lux-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.neura-lux-glass-dark {
+  background: linear-gradient(135deg, rgba(10, 14, 23, 0.8), rgba(10, 14, 23, 0.95));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.neura-lux-btn-primary {
+  background: linear-gradient(to bottom, #f3e5ab, #d4af37, #aa7c11);
+  color: #0a0e17;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.6);
+  border: none;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.neura-lux-btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.neura-lux-text-gold {
+  background: linear-gradient(to right, #f3e5ab, #d4af37);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
