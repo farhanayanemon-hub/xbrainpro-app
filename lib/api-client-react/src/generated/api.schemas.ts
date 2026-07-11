@@ -205,6 +205,70 @@ export interface OpenMysteryBoxResult {
   charged: boolean;
 }
 
+export interface ContestRoundInfo {
+  id: number;
+  /** The round's fashion theme, e.g. "Neon Nights" */
+  theme: string;
+  /** ISO timestamp the round opened */
+  opensAt: string;
+  /** ISO timestamp the round closes and pays out */
+  closesAt: string;
+}
+
+export interface ContestEntry {
+  id: number;
+  /** The entered look (store avatar id) */
+  avatarId: string;
+  displayName: string;
+  gender: string;
+  votes: number;
+  /** True when this entry belongs to the requesting player */
+  isMine: boolean;
+  /** True when the requesting player already voted for this entry */
+  votedByMe: boolean;
+}
+
+export interface ContestResult {
+  entryId: number;
+  /** 1-based final placement */
+  rank: number;
+  avatarId: string;
+  displayName: string;
+  votes: number;
+  rewardCoins: number;
+  rewardGems: number;
+}
+
+export interface ContestLastResults {
+  roundId: number;
+  theme: string;
+  /** ISO timestamp the round was settled */
+  settledAt: string;
+  winners: ContestResult[];
+}
+
+export interface ContestState {
+  round: ContestRoundInfo;
+  entries: ContestEntry[];
+  /**
+     * The requesting player's entry id, or null if not entered
+     * @nullable
+     */
+  myEntryId: number | null;
+  /** The most recent settled round's winners, or null */
+  lastResults: ContestLastResults | null;
+}
+
+export interface EnterContestInput {
+  /** The equipped look to enter */
+  avatarId: string;
+}
+
+export interface VoteContestInput {
+  /** The entry to vote for */
+  entryId: number;
+}
+
 export interface PlayerHome {
   /** Index of the assigned residential house plot in the world map. */
   plot: number;

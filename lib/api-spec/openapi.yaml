@@ -42,6 +42,8 @@ tags:
     description: Mystery Box gem gambling
   - name: apartment
     description: Personal decorate-able apartment
+  - name: contest
+    description: Fashion Contest — enter looks, vote, and win currency
 paths:
   /healthz:
     get:
@@ -977,6 +979,107 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /contest:
+    get:
+      operationId: getContest
+      tags: [contest]
+      summary: Get the live Fashion Contest round, entries, and past winners
+      responses:
+        "200":
+          description: The current contest state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContestState"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /contest/entry:
+    post:
+      operationId: enterContest
+      tags: [contest]
+      summary: Enter the current round with your equipped look
+      description: Snapshots your name + gender. One entry per player per round.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnterContestInput"
+      responses:
+        "200":
+          description: The refreshed contest state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContestState"
+        "400":
+          description: Missing look or no profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Already entered this round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /contest/vote:
+    post:
+      operationId: voteContest
+      tags: [contest]
+      summary: Vote for an entry in the current round
+      description: One vote per voter per entry; self-votes are rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteContestInput"
+      responses:
+        "200":
+          description: The refreshed contest state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContestState"
+        "400":
+          description: Missing entryId or self-vote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Entry not in the current round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Already voted for this entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /world/map:
     get:
       operationId: getWorldMap
@@ -1239,6 +1342,115 @@ components:
         charged:
           type: boolean
           description: False when this was a replay of a previous open (idempotent)
+
+    ContestRoundInfo:
+      type: object
+      required: [id, theme, opensAt, closesAt]
+      properties:
+        id:
+          type: integer
+        theme:
+          type: string
+          description: The round's fashion theme, e.g. "Neon Nights"
+        opensAt:
+          type: string
+          description: ISO timestamp the round opened
+        closesAt:
+          type: string
+          description: ISO timestamp the round closes and pays out
+
+    ContestEntry:
+      type: object
+      required: [id, avatarId, displayName, gender, votes, isMine, votedByMe]
+      properties:
+        id:
+          type: integer
+        avatarId:
+          type: string
+          description: The entered look (store avatar id)
+        displayName:
+          type: string
+        gender:
+          type: string
+        votes:
+          type: integer
+        isMine:
+          type: boolean
+          description: True when this entry belongs to the requesting player
+        votedByMe:
+          type: boolean
+          description: True when the requesting player already voted for this entry
+
+    ContestResult:
+      type: object
+      required: [entryId, rank, avatarId, displayName, votes, rewardCoins, rewardGems]
+      properties:
+        entryId:
+          type: integer
+        rank:
+          type: integer
+          description: 1-based final placement
+        avatarId:
+          type: string
+        displayName:
+          type: string
+        votes:
+          type: integer
+        rewardCoins:
+          type: integer
+        rewardGems:
+          type: integer
+
+    ContestLastResults:
+      type: object
+      required: [roundId, theme, settledAt, winners]
+      properties:
+        roundId:
+          type: integer
+        theme:
+          type: string
+        settledAt:
+          type: string
+          description: ISO timestamp the round was settled
+        winners:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContestResult"
+
+    ContestState:
+      type: object
+      required: [round, entries, myEntryId, lastResults]
+      properties:
+        round:
+          $ref: "#/components/schemas/ContestRoundInfo"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContestEntry"
+        myEntryId:
+          type: ["integer", "null"]
+          description: The requesting player's entry id, or null if not entered
+        lastResults:
+          oneOf:
+            - $ref: "#/components/schemas/ContestLastResults"
+            - type: "null"
+          description: The most recent settled round's winners, or null
+
+    EnterContestInput:
+      type: object
+      required: [avatarId]
+      properties:
+        avatarId:
+          type: string
+          description: The equipped look to enter
+
+    VoteContestInput:
+      type: object
+      required: [entryId]
+      properties:
+        entryId:
+          type: integer
+          description: The entry to vote for
 
     PlayerHome:
       type: object

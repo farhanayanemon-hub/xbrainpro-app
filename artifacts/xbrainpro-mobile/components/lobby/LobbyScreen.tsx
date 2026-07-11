@@ -23,6 +23,7 @@ import DailyTasksPanel from "@/components/lobby/DailyTasksPanel";
 import FriendsPanel, { type JoinTarget } from "@/components/lobby/FriendsPanel";
 import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
 import MysteryBoxPanel from "@/components/lobby/MysteryBoxPanel";
+import ContestPanel from "@/components/lobby/ContestPanel";
 import StorePanel from "@/components/lobby/StorePanel";
 import {
   claimTask,
@@ -38,6 +39,13 @@ import {
   type MysteryReward,
 } from "@/lib/mysteryBox";
 import {
+  castVote,
+  fetchContest,
+  submitEntry,
+  type ContestState,
+} from "@/lib/fashionContest";
+import {
+  AVATAR_MAP,
   GENDER_AVATAR,
   loadAvatarId,
   loadOwnedAvatarIds,
@@ -62,7 +70,15 @@ type MenuItem = {
   key: string;
   icon: string;
   label: string;
-  action: "play" | "friends" | "character" | "store" | "daily" | "box" | "apartment";
+  action:
+    | "play"
+    | "friends"
+    | "character"
+    | "store"
+    | "daily"
+    | "box"
+    | "apartment"
+    | "contest";
 };
 
 // Only shipping features live here — placeholder tiles are added back when
@@ -71,6 +87,7 @@ const MENU: MenuItem[] = [
   { key: "store", icon: "🛍️", label: "STORE", action: "store" },
   { key: "daily", icon: "✅", label: "DAILY", action: "daily" },
   { key: "box", icon: "🎁", label: "MYSTERY", action: "box" },
+  { key: "contest", icon: "👗", label: "CONTEST", action: "contest" },
   { key: "apartment", icon: "🏠", label: "APARTMENT", action: "apartment" },
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character" },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends" },
@@ -321,6 +338,13 @@ export default function LobbyScreen({
   const [boxOpening, setBoxOpening] = useState(false);
   const [boxReward, setBoxReward] = useState<MysteryReward | null>(null);
   const [boxNotice, setBoxNotice] = useState<string | null>(null);
+  // Fashion Contest sheet + its server-owned state (round, entries, results).
+  const [contestOpen, setContestOpen] = useState(false);
+  const [contestState, setContestState] = useState<ContestState | null>(null);
+  const [contestLoading, setContestLoading] = useState(false);
+  const [contestEntering, setContestEntering] = useState(false);
+  const [contestVotingId, setContestVotingId] = useState<number | null>(null);
+  const [contestNotice, setContestNotice] = useState<string | null>(null);
   // Unread private messages across all friends — badges the 👥 button.
   const [unreadTotal, setUnreadTotal] = useState(0);
   // The equipped look — this is what persists and carries into the city.
@@ -505,6 +529,54 @@ export default function LobbyScreen({
       .finally(() => setBoxOpening(false));
   };
 
+  // --- Fashion Contest ---------------------------------------------------- //
+  const openContest = () => {
+    setContestNotice(null);
+    setContestOpen(true);
+    setContestLoading(true);
+    void fetchContest()
+      .then((s) => setContestState(s))
+      .catch(() => setContestNotice("Couldn't load the contest. Try again."))
+      .finally(() => setContestLoading(false));
+  };
+
+  const handleEnterContest = () => {
+    if (contestEntering) return; // one submit at a time
+    setContestNotice(null);
+    setContestEntering(true);
+    void submitEntry(equippedId)
+      .then((s) => {
+        setContestState(s);
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        setContestNotice(apiError(err, "Couldn't enter. Try again."));
+        // Re-sync in case the round rolled over or the entry already landed.
+        void fetchContest()
+          .then((s) => setContestState(s))
+          .catch(() => {});
+      })
+      .finally(() => setContestEntering(false));
+  };
+
+  const handleVote = (entryId: number) => {
+    if (contestVotingId) return; // one vote at a time
+    setContestNotice(null);
+    setContestVotingId(entryId);
+    void castVote(entryId)
+      .then((s) => {
+        setContestState(s);
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        setContestNotice(apiError(err, "Couldn't vote. Try again."));
+        void fetchContest()
+          .then((s) => setContestState(s))
+          .catch(() => {});
+      })
+      .finally(() => setContestVotingId(null));
+  };
+
   const handleUnlock = (id: string) => {
     if (buyingId) return; // one purchase at a time
     setNotice(null);
@@ -558,6 +630,9 @@ export default function LobbyScreen({
         break;
       case "box":
         openBoxSheet();
+        break;
+      case "contest":
+        openContest();
         break;
       case "apartment":
         onApartment();
@@ -815,6 +890,24 @@ export default function LobbyScreen({
           onClose={() => {
             playBack();
             setBoxOpen(false);
+          }}
+        />
+      )}
+
+      {/* Fashion Contest bottom sheet */}
+      {contestOpen && (
+        <ContestPanel
+          state={contestState}
+          loading={contestLoading}
+          entering={contestEntering}
+          votingId={contestVotingId}
+          notice={contestNotice}
+          equippedName={AVATAR_MAP[equippedId]?.name ?? "Your look"}
+          onEnter={handleEnterContest}
+          onVote={handleVote}
+          onClose={() => {
+            playBack();
+            setContestOpen(false);
           }}
         />
       )}

@@ -28,8 +28,10 @@ import type {
   ChatMessageInput,
   ChatReply,
   ClaimResult,
+  ContestState,
   DailyState,
   DashboardSummary,
+  EnterContestInput,
   Error,
   HealthStatus,
   LoginInput,
@@ -58,6 +60,7 @@ import type {
   Task,
   TaskCompletionResult,
   User,
+  VoteContestInput,
   Wallet,
   WorldMap
 } from './api.schemas';
@@ -3257,6 +3260,225 @@ export const useSaveApartment = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getSaveApartmentMutationOptions(options));
+    }
+
+export const getGetContestUrl = () => {
+
+
+
+
+  return `/api/contest`
+}
+
+/**
+ * @summary Get the live Fashion Contest round, entries, and past winners
+ */
+export const getContest = async ( options?: RequestInit): Promise<ContestState> => {
+
+  return customFetch<ContestState>(getGetContestUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContestQueryKey = () => {
+    return [
+    `/api/contest`
+    ] as const;
+    }
+
+
+export const getGetContestQueryOptions = <TData = Awaited<ReturnType<typeof getContest>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContestQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContest>>> = ({ signal }) => getContest({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContestQueryResult = NonNullable<Awaited<ReturnType<typeof getContest>>>
+export type GetContestQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the live Fashion Contest round, entries, and past winners
+ */
+
+export function useGetContest<TData = Awaited<ReturnType<typeof getContest>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContestQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getEnterContestUrl = () => {
+
+
+
+
+  return `/api/contest/entry`
+}
+
+/**
+ * Snapshots your name + gender. One entry per player per round.
+ * @summary Enter the current round with your equipped look
+ */
+export const enterContest = async (enterContestInput: EnterContestInput, options?: RequestInit): Promise<ContestState> => {
+
+  return customFetch<ContestState>(getEnterContestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(enterContestInput)
+  }
+);}
+
+
+
+
+export const getEnterContestMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterContest>>, TError,{data: BodyType<EnterContestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enterContest>>, TError,{data: BodyType<EnterContestInput>}, TContext> => {
+
+const mutationKey = ['enterContest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enterContest>>, {data: BodyType<EnterContestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  enterContest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnterContestMutationResult = NonNullable<Awaited<ReturnType<typeof enterContest>>>
+    export type EnterContestMutationBody = BodyType<EnterContestInput>
+    export type EnterContestMutationError = ErrorType<Error>
+
+    /**
+ * @summary Enter the current round with your equipped look
+ */
+export const useEnterContest = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterContest>>, TError,{data: BodyType<EnterContestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enterContest>>,
+        TError,
+        {data: BodyType<EnterContestInput>},
+        TContext
+      > => {
+      return useMutation(getEnterContestMutationOptions(options));
+    }
+
+export const getVoteContestUrl = () => {
+
+
+
+
+  return `/api/contest/vote`
+}
+
+/**
+ * One vote per voter per entry; self-votes are rejected.
+ * @summary Vote for an entry in the current round
+ */
+export const voteContest = async (voteContestInput: VoteContestInput, options?: RequestInit): Promise<ContestState> => {
+
+  return customFetch<ContestState>(getVoteContestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(voteContestInput)
+  }
+);}
+
+
+
+
+export const getVoteContestMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voteContest>>, TError,{data: BodyType<VoteContestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof voteContest>>, TError,{data: BodyType<VoteContestInput>}, TContext> => {
+
+const mutationKey = ['voteContest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof voteContest>>, {data: BodyType<VoteContestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  voteContest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VoteContestMutationResult = NonNullable<Awaited<ReturnType<typeof voteContest>>>
+    export type VoteContestMutationBody = BodyType<VoteContestInput>
+    export type VoteContestMutationError = ErrorType<Error>
+
+    /**
+ * @summary Vote for an entry in the current round
+ */
+export const useVoteContest = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voteContest>>, TError,{data: BodyType<VoteContestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof voteContest>>,
+        TError,
+        {data: BodyType<VoteContestInput>},
+        TContext
+      > => {
+      return useMutation(getVoteContestMutationOptions(options));
     }
 
 export const getGetWorldMapUrl = () => {

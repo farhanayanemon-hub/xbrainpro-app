@@ -929,6 +929,127 @@ export const SaveApartmentResponse = zod.object({
 
 
 /**
+ * @summary Get the live Fashion Contest round, entries, and past winners
+ */
+export const GetContestResponse = zod.object({
+  "round": zod.object({
+  "id": zod.number(),
+  "theme": zod.string().describe('The round\'s fashion theme, e.g. \"Neon Nights\"'),
+  "opensAt": zod.string().describe('ISO timestamp the round opened'),
+  "closesAt": zod.string().describe('ISO timestamp the round closes and pays out')
+}),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "avatarId": zod.string().describe('The entered look (store avatar id)'),
+  "displayName": zod.string(),
+  "gender": zod.string(),
+  "votes": zod.number(),
+  "isMine": zod.boolean().describe('True when this entry belongs to the requesting player'),
+  "votedByMe": zod.boolean().describe('True when the requesting player already voted for this entry')
+})),
+  "myEntryId": zod.number().nullable().describe('The requesting player\'s entry id, or null if not entered'),
+  "lastResults": zod.union([zod.object({
+  "roundId": zod.number(),
+  "theme": zod.string(),
+  "settledAt": zod.string().describe('ISO timestamp the round was settled'),
+  "winners": zod.array(zod.object({
+  "entryId": zod.number(),
+  "rank": zod.number().describe('1-based final placement'),
+  "avatarId": zod.string(),
+  "displayName": zod.string(),
+  "votes": zod.number(),
+  "rewardCoins": zod.number(),
+  "rewardGems": zod.number()
+}))
+}),zod.null()]).describe('The most recent settled round\'s winners, or null')
+})
+
+
+/**
+ * Snapshots your name + gender. One entry per player per round.
+ * @summary Enter the current round with your equipped look
+ */
+export const EnterContestBody = zod.object({
+  "avatarId": zod.string().describe('The equipped look to enter')
+})
+
+export const EnterContestResponse = zod.object({
+  "round": zod.object({
+  "id": zod.number(),
+  "theme": zod.string().describe('The round\'s fashion theme, e.g. \"Neon Nights\"'),
+  "opensAt": zod.string().describe('ISO timestamp the round opened'),
+  "closesAt": zod.string().describe('ISO timestamp the round closes and pays out')
+}),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "avatarId": zod.string().describe('The entered look (store avatar id)'),
+  "displayName": zod.string(),
+  "gender": zod.string(),
+  "votes": zod.number(),
+  "isMine": zod.boolean().describe('True when this entry belongs to the requesting player'),
+  "votedByMe": zod.boolean().describe('True when the requesting player already voted for this entry')
+})),
+  "myEntryId": zod.number().nullable().describe('The requesting player\'s entry id, or null if not entered'),
+  "lastResults": zod.union([zod.object({
+  "roundId": zod.number(),
+  "theme": zod.string(),
+  "settledAt": zod.string().describe('ISO timestamp the round was settled'),
+  "winners": zod.array(zod.object({
+  "entryId": zod.number(),
+  "rank": zod.number().describe('1-based final placement'),
+  "avatarId": zod.string(),
+  "displayName": zod.string(),
+  "votes": zod.number(),
+  "rewardCoins": zod.number(),
+  "rewardGems": zod.number()
+}))
+}),zod.null()]).describe('The most recent settled round\'s winners, or null')
+})
+
+
+/**
+ * One vote per voter per entry; self-votes are rejected.
+ * @summary Vote for an entry in the current round
+ */
+export const VoteContestBody = zod.object({
+  "entryId": zod.number().describe('The entry to vote for')
+})
+
+export const VoteContestResponse = zod.object({
+  "round": zod.object({
+  "id": zod.number(),
+  "theme": zod.string().describe('The round\'s fashion theme, e.g. \"Neon Nights\"'),
+  "opensAt": zod.string().describe('ISO timestamp the round opened'),
+  "closesAt": zod.string().describe('ISO timestamp the round closes and pays out')
+}),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "avatarId": zod.string().describe('The entered look (store avatar id)'),
+  "displayName": zod.string(),
+  "gender": zod.string(),
+  "votes": zod.number(),
+  "isMine": zod.boolean().describe('True when this entry belongs to the requesting player'),
+  "votedByMe": zod.boolean().describe('True when the requesting player already voted for this entry')
+})),
+  "myEntryId": zod.number().nullable().describe('The requesting player\'s entry id, or null if not entered'),
+  "lastResults": zod.union([zod.object({
+  "roundId": zod.number(),
+  "theme": zod.string(),
+  "settledAt": zod.string().describe('ISO timestamp the round was settled'),
+  "winners": zod.array(zod.object({
+  "entryId": zod.number(),
+  "rank": zod.number().describe('1-based final placement'),
+  "avatarId": zod.string(),
+  "displayName": zod.string(),
+  "votes": zod.number(),
+  "rewardCoins": zod.number(),
+  "rewardGems": zod.number()
+}))
+}),zod.null()]).describe('The most recent settled round\'s winners, or null')
+})
+
+
+/**
  * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
  * @summary Get the current Neura City world map
  */

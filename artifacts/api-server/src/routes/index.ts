@@ -12,6 +12,7 @@ import moderationRouter from "./moderation";
 import walletRouter from "./wallet";
 import engagementRouter from "./engagement";
 import apartmentRouter from "./apartment";
+import contestRouter from "./contest";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(moderationRouter);
 router.use(walletRouter);
 router.use(engagementRouter);
 router.use(apartmentRouter);
+router.use(contestRouter);
 
 export default router;

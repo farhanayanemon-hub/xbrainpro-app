@@ -16,5 +16,6 @@
 - [City HUD overlay layering](city-hud-overlays.md) — modal backdrops only block controls mounted before them; mount modal overlays last in city.tsx or use RN Modal.
 - [Validation workflow conversion](validation-workflow-conversion.md) — change the "test" workflow only via setValidationCommand; configureWorkflow drops isValidation.
 - [Chat moderation design](chat-moderation.md) — mutes are DB row + live socket state; always mute via the moderation helper; profanity filter must stay synchronous.
+- [Drizzle unique-violation detection](drizzle-unique-violation.md) — pg 23505 code is on err.cause, not err; walk the cause chain to map to domain errors.
 - [Lobby/loading scene assets](lobby-loading-scene.md) — admin-swappable 3D lobby room + loading backdrop via "scene" category (lobby/loading slots); server enum is the gatekeeper across 4 layers; must stay fault-tolerant.
 - [Coins & gems economy](wallet-economy.md) — server-authoritative currency via ledger; prices duplicated in mobile avatar catalog must match server store catalog; purchase result is flat {coins,gems,avatarId,owned}.
