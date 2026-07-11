@@ -25,6 +25,16 @@ export function hasResolvedAsset(id: string): boolean {
   return resolved.has(id);
 }
 
+/**
+ * Resolve any asset id to a loadable uri: the on-device cached copy once it's
+ * downloaded, otherwise the provided fallback (typically the manifest's
+ * same-origin CDN url). Used for generic assets like the lobby "scene" room
+ * that have no bundled counterpart.
+ */
+export function resolvedUri(id: string, fallback: string): string {
+  return resolved.get(id) ?? fallback;
+}
+
 export function resolveModel(id: ModelId): string {
   return resolved.get(id) ?? assetUri(MODEL_SOURCES[id]);
 }

@@ -9,7 +9,7 @@ import { absoluteApiUrl } from "@/lib/session";
  * The `version` bumps whenever an admin uploads/replaces/deletes an asset so
  * clients know to re-fetch.
  */
-export type AssetCategory = "model" | "texture" | "avatar";
+export type AssetCategory = "model" | "texture" | "avatar" | "scene";
 
 export interface AssetEntry {
   id: string;
@@ -91,6 +91,19 @@ async function loadManifest(): Promise<AssetManifest | null> {
 export function avatarEntrySync(id: string): AssetEntry | undefined {
   return lastManifest?.assets.find(
     (a) => a.category === "avatar" && a.id === id,
+  );
+}
+
+/**
+ * Synchronous lookup of a "scene" asset by its slot from the last-seen
+ * manifest. `slot` is "lobby" (the 3D lobby room GLB) or "loading" (the
+ * loading-screen backdrop image). Returns undefined until the manifest loads
+ * or when no admin has uploaded a scene for that slot yet — callers then use
+ * their built-in default room / gradient backdrop.
+ */
+export function sceneEntrySync(slot: string): AssetEntry | undefined {
+  return lastManifest?.assets.find(
+    (a) => a.category === "scene" && a.slot === slot,
   );
 }
 

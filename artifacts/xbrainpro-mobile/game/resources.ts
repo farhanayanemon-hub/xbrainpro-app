@@ -17,12 +17,14 @@ const CONCURRENCY = 6;
 
 export type ResourceProgress = { done: number; total: number };
 
-/** Model/texture assets that belong to a given zone. */
+/** Model/texture/scene assets that belong to a given zone. */
 async function zoneAssets(zone: string): Promise<AssetEntry[]> {
   const manifest = await getManifest();
   return (manifest?.assets ?? []).filter(
     (a) =>
-      (a.category === "model" || a.category === "texture") &&
+      (a.category === "model" ||
+        a.category === "texture" ||
+        a.category === "scene") &&
       assetZone(a) === zone,
   );
 }
@@ -65,6 +67,31 @@ export async function downloadResources(
   onProgress: (progress: ResourceProgress) => void,
 ): Promise<void> {
   await fetchAll(await zoneAssets(zone), onProgress);
+}
+
+/**
+ * Prepare the lobby before it shows: download the lobby "scene" assets (the 3D
+ * room + any lobby models/textures) and warm the player's equipped avatar, all
+ * with real progress. This backs the Avakin-style loading bar and makes the
+ * lobby paint instantly instead of streaming in. Fully tolerant — a missing
+ * manifest/asset just means the lobby uses its bundled defaults.
+ */
+export async function prepareLobby(
+  avatarId: string,
+  onProgress: (progress: ResourceProgress) => void,
+): Promise<void> {
+  const manifest = await getManifest();
+  const lobby = (manifest?.assets ?? []).filter(
+    (a) =>
+      (a.category === "model" ||
+        a.category === "texture" ||
+        a.category === "scene") &&
+      assetZone(a) === "lobby",
+  );
+  const avatar = manifest?.assets.find(
+    (a) => a.category === "avatar" && a.id === avatarId,
+  );
+  await fetchAll(avatar ? [...lobby, avatar] : lobby, onProgress);
 }
 
 /**

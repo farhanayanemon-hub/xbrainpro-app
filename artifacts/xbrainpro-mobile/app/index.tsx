@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
   getCurrentUser,
@@ -17,14 +10,24 @@ import {
 } from "@workspace/api-client-react";
 
 import AuthScreen from "@/components/lobby/AuthScreen";
+import LoadingScreen from "@/components/lobby/LoadingScreen";
 import LobbyScreen from "@/components/lobby/LobbyScreen";
 import ProfileSetup from "@/components/lobby/ProfileSetup";
 import colors, { fonts } from "@/constants/colors";
-import { clearToken, loadToken, saveToken } from "@/lib/session";
+import { GENDER_AVATAR, loadAvatarId } from "@/game/avatar";
+import { prepareLobby } from "@/game/resources";
+import { absoluteApiUrl, clearToken, loadToken, saveToken } from "@/lib/session";
 
 const C = colors.dark;
 
-type Stage = "loading" | "auth" | "setup" | "editing" | "lobby" | "error";
+type Stage =
+  | "loading"
+  | "preparing"
+  | "auth"
+  | "setup"
+  | "editing"
+  | "lobby"
+  | "error";
 
 /** Read an HTTP status off a thrown API error, if present. */
 function errStatus(e: unknown): number | undefined {
@@ -58,6 +61,36 @@ export default function Gate() {
   const [profile, setProfile] = useState<PlayerProfile | null>(
     PREVIEW_PROFILE,
   );
+  // 0..1 progress of the lobby "preparing" phase (scene + avatar download).
+  const [prepProgress, setPrepProgress] = useState(0);
+
+  // Show the Avakin-style loading screen while the lobby's 3D room + the
+  // player's avatar download, with a real progress bar, then reveal the lobby.
+  // Fully tolerant: any download failure still lands in the lobby (which falls
+  // back to its bundled assets).
+  const enterLobby = useCallback(async (p: PlayerProfile) => {
+    setProfile(p);
+    setPrepProgress(0);
+    setStage("preparing");
+    const stored = await loadAvatarId().catch(() => null);
+    const avatarId =
+      stored || GENDER_AVATAR[p.gender === "female" ? "female" : "male"];
+    const started = Date.now();
+    try {
+      await prepareLobby(avatarId, ({ done, total }) => {
+        setPrepProgress(total > 0 ? done / total : 1);
+      });
+    } catch {
+      // tolerated — lobby uses bundled defaults
+    }
+    // Keep the loading screen on screen briefly so it never just flashes.
+    const elapsed = Date.now() - started;
+    if (elapsed < 700) {
+      await new Promise((r) => setTimeout(r, 700 - elapsed));
+    }
+    setPrepProgress(1);
+    setStage("lobby");
+  }, []);
 
   // Restore the session on launch: token → user → profile → lobby.
   const restore = useCallback(async () => {
@@ -82,8 +115,7 @@ export default function Gate() {
     }
     try {
       const p = await getPlayerProfile();
-      setProfile(p);
-      setStage("lobby");
+      await enterLobby(p);
     } catch (e) {
       const status = errStatus(e);
       if (status === 404) {
@@ -95,7 +127,7 @@ export default function Gate() {
         setStage("error");
       }
     }
-  }, []);
+  }, [enterLobby]);
 
   useEffect(() => {
     if (PREVIEW_PROFILE) return; // skip auth in preview mode
@@ -117,8 +149,7 @@ export default function Gate() {
     }
     try {
       const p = await getPlayerProfile();
-      setProfile(p);
-      setStage("lobby");
+      await enterLobby(p);
     } catch (e) {
       // Existing account without a profile still needs setup; only 404 means that.
       if (errStatus(e) === 404) {
@@ -127,12 +158,14 @@ export default function Gate() {
         setStage("error");
       }
     }
-  }, []);
+  }, [enterLobby]);
 
-  const handleProfileDone = useCallback((p: PlayerProfile) => {
-    setProfile(p);
-    setStage("lobby");
-  }, []);
+  const handleProfileDone = useCallback(
+    (p: PlayerProfile) => {
+      void enterLobby(p);
+    },
+    [enterLobby],
+  );
 
   const handleLogout = useCallback(async () => {
     try {
@@ -145,13 +178,15 @@ export default function Gate() {
     setStage("auth");
   }, []);
 
-  if (stage === "loading") {
+  if (stage === "loading" || stage === "preparing") {
+    const photoUrl = profile?.photoUrl
+      ? absoluteApiUrl(profile.photoUrl)
+      : null;
     return (
-      <View style={styles.loading}>
-        <Text style={styles.loadingSpark}>✦</Text>
-        <Text style={styles.loadingTitle}>NEURA CITY</Text>
-        <ActivityIndicator color={C.primary} style={{ marginTop: 14 }} />
-      </View>
+      <LoadingScreen
+        progress={stage === "preparing" ? prepProgress : null}
+        photoUrl={photoUrl}
+      />
     );
   }
 

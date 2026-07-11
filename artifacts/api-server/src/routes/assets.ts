@@ -15,8 +15,10 @@ import {
 
 const router: IRouter = Router();
 
-const CATEGORIES = ["model", "texture", "avatar"] as const;
-const SLOTS = ["male", "female"] as const;
+const CATEGORIES = ["model", "texture", "avatar", "scene"] as const;
+// male/female pick an avatar by gender; lobby/loading tag a "scene" asset as the
+// lobby 3D room or the loading-screen backdrop so admins can swap them freely.
+const SLOTS = ["male", "female", "lobby", "loading"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 /** Max upload size — GLBs with 2K textures can be sizable. */
@@ -146,7 +148,12 @@ router.get("/assets/manifest", async (req, res): Promise<void> => {
         zone:
           ((r.meta as Record<string, unknown> | null)?.zone as
             | string
-            | undefined) ?? (r.category === "avatar" ? "*" : "city"),
+            | undefined) ??
+          (r.category === "avatar"
+            ? "*"
+            : r.category === "scene"
+              ? "lobby"
+              : "city"),
       },
     }))
   );

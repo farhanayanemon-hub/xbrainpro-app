@@ -24,9 +24,11 @@ const mockGetManifest = jest.fn();
 const mockResolveAvatar = jest.fn();
 jest.mock("@/game/assetManifest", () => ({
   getManifest: (force?: boolean) => mockGetManifest(force),
+  sceneEntrySync: () => undefined,
 }));
 jest.mock("@/game/assetResolver", () => ({
   resolveAvatar: (id: string) => mockResolveAvatar(id),
+  resolvedUri: (_id: string, fallback: string) => fallback,
 }));
 
 import LobbyAvatarStage from "./LobbyAvatarStage";

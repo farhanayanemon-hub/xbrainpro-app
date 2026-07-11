@@ -495,8 +495,8 @@ function ModelTab({ settings }: { settings: AdminSettings }) {
 
 interface GameAsset {
   id: string;
-  category: "model" | "texture" | "avatar";
-  slot: "male" | "female" | null;
+  category: "model" | "texture" | "avatar" | "scene";
+  slot: "male" | "female" | "lobby" | "loading" | null;
   label: string;
   fileName: string;
   hash: string;
@@ -509,7 +509,7 @@ interface GameAsset {
   updatedAt: string;
 }
 
-const ASSET_CATEGORIES = ["model", "texture", "avatar"] as const;
+const ASSET_CATEGORIES = ["model", "texture", "avatar", "scene"] as const;
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -521,7 +521,7 @@ interface AssetEditorState {
   id: string;
   category: GameAsset["category"];
   label: string;
-  slot: "none" | "male" | "female";
+  slot: "none" | "male" | "female" | "lobby" | "loading";
   meta: string;
   file: File | null;
   replacing: boolean;
@@ -694,6 +694,21 @@ function AssetsTab() {
                 </SelectContent>
               </Select>
             )}
+            {a.category === "scene" && (
+              <Select
+                value={a.slot ?? "none"}
+                onValueChange={(slot) => setSlot.mutate({ id: a.id, slot })}
+              >
+                <SelectTrigger className="w-36 h-8" data-testid={`select-slot-${a.id}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No slot</SelectItem>
+                  <SelectItem value="lobby">Lobby room</SelectItem>
+                  <SelectItem value="loading">Loading screen</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -794,6 +809,30 @@ function AssetsTab() {
                       <SelectItem value="female">Female</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+              {editor.category === "scene" && (
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Scene slot</p>
+                  <Select
+                    value={editor.slot}
+                    onValueChange={(slot) =>
+                      setEditor({ ...editor, slot: slot as AssetEditorState["slot"] })
+                    }
+                  >
+                    <SelectTrigger data-testid="select-asset-slot">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No slot</SelectItem>
+                      <SelectItem value="lobby">Lobby room (3D .glb)</SelectItem>
+                      <SelectItem value="loading">Loading screen (image)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Lobby room = a .glb the character stands in. Loading screen =
+                    a background image shown while the game loads.
+                  </p>
                 </div>
               )}
               <div>
