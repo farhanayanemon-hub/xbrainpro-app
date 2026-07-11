@@ -81,6 +81,31 @@ export function subscribeChat(cb: ChatListener): () => void {
   };
 }
 
+/** One private message as pushed by the server over /ws. */
+export interface DmPush {
+  id: number;
+  fromId: number;
+  toId: number;
+  text: string;
+  ts: number;
+  fromName?: string;
+}
+
+type DmListener = (msg: DmPush) => void;
+const dmListeners = new Set<DmListener>();
+
+/**
+ * Subscribe to realtime private messages (only fires while the city socket
+ * is connected). Used by an open DM thread to append incoming messages, and
+ * by badges to bump unread counts without polling.
+ */
+export function subscribeDm(cb: DmListener): () => void {
+  dmListeners.add(cb);
+  return () => {
+    dmListeners.delete(cb);
+  };
+}
+
 /** Send a chat message to everyone in the city. */
 export function sendChat(text: string): void {
   const t = text.trim().slice(0, CHAT_MAX_LEN);
@@ -215,6 +240,14 @@ function handleMessage(raw: string): void {
       // Speech bubble over the speaker's head ("me" for the local player).
       setBubble(m.id === myId ? "me" : m.id, m.text);
       emitChat();
+      break;
+    }
+    case "dm": {
+      const m = msg["msg"] as DmPush | undefined;
+      if (!m || typeof m.text !== "string" || typeof m.fromId !== "number") {
+        break;
+      }
+      for (const cb of dmListeners) cb(m);
       break;
     }
     case "chatlog": {

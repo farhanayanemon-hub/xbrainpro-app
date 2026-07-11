@@ -20,6 +20,7 @@ import {
   type FriendsData,
   type RequestEntry,
 } from "@/lib/friends";
+import DmThread from "@/components/lobby/DmThread";
 
 const C = colors.dark;
 
@@ -64,6 +65,7 @@ export default function FriendsPanel({
 }) {
   const [data, setData] = useState<FriendsData | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [dmFriend, setDmFriend] = useState<FriendEntry | null>(null);
   const [addName, setAddName] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
@@ -245,6 +247,20 @@ export default function FriendsPanel({
                     : "Offline"}
                 </Text>
               </View>
+              <Pressable
+                style={styles.msgBtn}
+                onPress={() => setDmFriend(f)}
+                hitSlop={4}
+              >
+                <Text style={styles.msgIcon}>💬</Text>
+                {f.unread > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {f.unread > 9 ? "9+" : f.unread}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
               {f.online && f.position && (
                 <Pressable
                   style={styles.joinBtn}
@@ -262,6 +278,18 @@ export default function FriendsPanel({
         <Text style={styles.pendingHint}>
           {outgoing.length} pending request{outgoing.length > 1 ? "s" : ""} sent
         </Text>
+      )}
+
+      {dmFriend && (
+        <DmThread
+          friendUserId={dmFriend.userId}
+          friendName={dmFriend.displayName}
+          onClose={() => {
+            setDmFriend(null);
+            // Opening the thread marked messages read; refresh the badges.
+            void refresh();
+          }}
+        />
       )}
     </View>
   );
@@ -378,6 +406,34 @@ const styles = StyleSheet.create({
   },
   statusOnline: { color: "#33d17a" },
   statusOffline: { color: C.mutedForeground },
+  msgBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: C.secondary,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  msgIcon: { fontSize: 15 },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: "#ff5470",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: "#fff",
+  },
   joinBtn: {
     backgroundColor: C.primary,
     borderRadius: 10,

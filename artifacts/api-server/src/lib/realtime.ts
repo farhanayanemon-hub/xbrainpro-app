@@ -25,6 +25,8 @@ import { logger } from "./logger";
  *     { t: "state", id, x, z, h }             someone moved
  *     { t: "chat", msg: ChatWire }            someone said something
  *     { t: "chatlog", messages: ChatWire[] }  recent history, once on connect
+ *     { t: "dm", msg: DmWire }                private message (pushed by the
+ *                                             REST layer via deliverToUser)
  */
 
 const WORLD_LIMIT = 60; // generous clamp; city bound is ~34
@@ -101,6 +103,22 @@ let liveClients: Map<string, Client> | null = null;
 /** True when the user currently has an open city socket. */
 export function isUserOnline(userId: number): boolean {
   return liveClients?.has(`u${userId}`) ?? false;
+}
+
+/**
+ * Push a message to a specific user's live socket, if they have one.
+ * Used by the REST layer to deliver direct messages in realtime.
+ * Returns true when the message was actually sent.
+ */
+export function deliverToUser(userId: number, msg: unknown): boolean {
+  const c = liveClients?.get(`u${userId}`);
+  if (!c || c.ws.readyState !== WebSocket.OPEN) return false;
+  try {
+    c.ws.send(JSON.stringify(msg));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

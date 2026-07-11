@@ -13,6 +13,8 @@ export interface FriendEntry {
   photoUrl: string | null;
   online: boolean;
   position: { x: number; z: number } | null;
+  /** Unread private messages from this friend. */
+  unread: number;
 }
 
 export interface RequestEntry {

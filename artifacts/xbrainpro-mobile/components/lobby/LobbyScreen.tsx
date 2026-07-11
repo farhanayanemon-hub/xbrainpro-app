@@ -14,6 +14,7 @@ import {
 import { type PlayerProfile } from "@workspace/api-client-react";
 
 import colors, { fonts } from "@/constants/colors";
+import { getUnreadTotal } from "@/lib/dm";
 import { absoluteApiUrl } from "@/lib/session";
 import { playBack, playConfirm, playTap } from "@/lib/sfx";
 import AmbientFX from "@/components/lobby/AmbientFX";
@@ -284,6 +285,8 @@ export default function LobbyScreen({
   const [comingSoon, setComingSoon] = useState<MenuItem | null>(null);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
+  // Unread private messages across all friends — badges the 👥 button.
+  const [unreadTotal, setUnreadTotal] = useState(0);
   // The equipped look — this is what persists and carries into the city.
   const [equippedId, setEquippedId] = useState(
     GENDER_AVATAR[profile.gender === "female" ? "female" : "male"],
@@ -342,6 +345,28 @@ export default function LobbyScreen({
       cancelled = true;
     };
   }, []);
+
+  // Poll the unread-DM total so the friends badge stays fresh, and refresh
+  // right after the drawer closes (reading a thread clears its unread count).
+  useEffect(() => {
+    if (friendsOpen) return;
+    let cancelled = false;
+    const tick = () => {
+      void getUnreadTotal()
+        .then((n) => {
+          if (!cancelled) setUnreadTotal(n);
+        })
+        .catch(() => {
+          /* non-fatal: badge just stays as-is */
+        });
+    };
+    tick();
+    const id = setInterval(tick, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [friendsOpen]);
 
   const openStore = () => {
     setPreviewId(equippedId);
@@ -474,6 +499,13 @@ export default function LobbyScreen({
               }}
             >
               <Text style={styles.iconBtnText}>👥</Text>
+              {unreadTotal > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {unreadTotal > 9 ? "9+" : unreadTotal}
+                  </Text>
+                </View>
+              )}
             </Pressable>
             <Pressable
               style={styles.iconBtn}
@@ -753,6 +785,23 @@ const styles = StyleSheet.create({
     borderColor: C.cardBorder,
   },
   iconBtnText: { fontSize: 15, color: "#fff" },
+  unreadBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: "#ff5470",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  unreadBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: "#fff",
+  },
 
   leftMenu: {
     position: "absolute",

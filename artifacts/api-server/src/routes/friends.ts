@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { and, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
+  directMessagesTable,
   friendshipsTable,
   playerProfilesTable,
   type PlayerProfile,
@@ -83,6 +84,26 @@ router.get("/friends", requireAuth, async (req, res): Promise<void> => {
     ...outgoingIds,
   ]);
 
+  // Unread DMs per friend, so the friends list can badge each row.
+  const unreadByFriend = new Map<number, number>();
+  if (friendIds.length > 0) {
+    const unreadRows = await db
+      .select({
+        senderId: directMessagesTable.senderId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(directMessagesTable)
+      .where(
+        and(
+          eq(directMessagesTable.recipientId, me),
+          isNull(directMessagesTable.readAt),
+          inArray(directMessagesTable.senderId, friendIds),
+        ),
+      )
+      .groupBy(directMessagesTable.senderId);
+    for (const r of unreadRows) unreadByFriend.set(r.senderId, r.count);
+  }
+
   const friends = friendIds
     .map((uid) => profiles.get(uid))
     .filter((p): p is PlayerProfile => !!p)
@@ -92,6 +113,7 @@ router.get("/friends", requireAuth, async (req, res): Promise<void> => {
         ...serializeFriendProfile(p),
         online: isUserOnline(p.userId),
         position: presence ? { x: presence.x, z: presence.z } : null,
+        unread: unreadByFriend.get(p.userId) ?? 0,
       };
     })
     // Online friends first, then alphabetical.

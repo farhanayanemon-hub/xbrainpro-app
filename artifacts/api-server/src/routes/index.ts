@@ -7,6 +7,7 @@ import adminRouter from "./admin";
 import worldRouter from "./world";
 import assetsRouter from "./assets";
 import friendsRouter from "./friends";
+import dmRouter from "./dm";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(adminRouter);
 router.use(worldRouter);
 router.use(assetsRouter);
 router.use(friendsRouter);
+router.use(dmRouter);
 
 export default router;
