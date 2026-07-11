@@ -64,6 +64,8 @@ export * from './saveApartmentInput';
 export * from './task';
 export * from './taskCompletionResult';
 export * from './user';
+export * from './vipPurchaseResult';
+export * from './vipStatus';
 export * from './voteContestInput';
 export * from './wallet';
 export * from './worldMap';

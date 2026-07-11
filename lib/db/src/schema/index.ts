@@ -18,3 +18,4 @@ export * from "./wallets";
 export * from "./engagement";
 export * from "./apartments";
 export * from "./fashionContest";
+export * from "./vip";

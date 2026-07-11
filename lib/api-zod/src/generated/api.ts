@@ -788,6 +788,7 @@ export const GetDailyTasksResponse = zod.object({
   "dayKey": zod.string().describe('UTC calendar day the board is for, e.g. \"2026-07-11\"'),
   "streak": zod.number().describe('Consecutive days logged in, including today'),
   "longestStreak": zod.number(),
+  "vip": zod.boolean().optional().describe('True when VIP is active — reward amounts already include the VIP bonus'),
   "tasks": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -814,6 +815,7 @@ export const AdvanceDailyTaskResponse = zod.object({
   "dayKey": zod.string().describe('UTC calendar day the board is for, e.g. \"2026-07-11\"'),
   "streak": zod.number().describe('Consecutive days logged in, including today'),
   "longestStreak": zod.number(),
+  "vip": zod.boolean().optional().describe('True when VIP is active — reward amounts already include the VIP bonus'),
   "tasks": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -1046,6 +1048,37 @@ export const VoteContestResponse = zod.object({
   "rewardGems": zod.number()
 }))
 }),zod.null()]).describe('The most recent settled round\'s winners, or null')
+})
+
+
+/**
+ * @summary Get the player's VIP status and the offer terms
+ */
+export const GetVipResponse = zod.object({
+  "active": zod.boolean().describe('True while the membership is currently active'),
+  "expiresAt": zod.string().nullable().describe('ISO expiry of the membership, or null if never bought'),
+  "costGems": zod.number().describe('Gem cost of one membership period'),
+  "durationDays": zod.number().describe('Length of one membership period, in days'),
+  "dailyBonusPct": zod.number().describe('How much VIP boosts Daily Task rewards, as a percentage')
+})
+
+
+/**
+ * Charges gems and pushes the expiry forward, stacking onto any remaining time.
+ * @summary Buy or extend VIP with gems
+ */
+export const PurchaseVipResponse = zod.object({
+  "status": zod.object({
+  "active": zod.boolean().describe('True while the membership is currently active'),
+  "expiresAt": zod.string().nullable().describe('ISO expiry of the membership, or null if never bought'),
+  "costGems": zod.number().describe('Gem cost of one membership period'),
+  "durationDays": zod.number().describe('Length of one membership period, in days'),
+  "dailyBonusPct": zod.number().describe('How much VIP boosts Daily Task rewards, as a percentage')
+}),
+  "balance": zod.object({
+  "coins": zod.number().describe('Soft currency balance'),
+  "gems": zod.number().describe('Premium currency balance')
+})
 })
 
 

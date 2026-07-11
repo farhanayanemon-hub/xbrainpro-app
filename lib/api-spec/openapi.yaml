@@ -44,6 +44,8 @@ tags:
     description: Personal decorate-able apartment
   - name: contest
     description: Fashion Contest — enter looks, vote, and win currency
+  - name: vip
+    description: VIP membership — buy with gems for perks that expire
 paths:
   /healthz:
     get:
@@ -1080,6 +1082,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /vip:
+    get:
+      operationId: getVip
+      tags: [vip]
+      summary: Get the player's VIP status and the offer terms
+      responses:
+        "200":
+          description: The current VIP status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VipStatus"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /vip/purchase:
+    post:
+      operationId: purchaseVip
+      tags: [vip]
+      summary: Buy or extend VIP with gems
+      description: Charges gems and pushes the expiry forward, stacking onto any remaining time.
+      responses:
+        "200":
+          description: The updated VIP status and wallet balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VipPurchaseResult"
+        "400":
+          description: Not enough gems
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /world/map:
     get:
       operationId: getWorldMap
@@ -1266,6 +1313,9 @@ components:
           description: Consecutive days logged in, including today
         longestStreak:
           type: integer
+        vip:
+          type: boolean
+          description: True when VIP is active — reward amounts already include the VIP bonus
         tasks:
           type: array
           items:
@@ -1451,6 +1501,35 @@ components:
         entryId:
           type: integer
           description: The entry to vote for
+
+    VipStatus:
+      type: object
+      required: [active, expiresAt, costGems, durationDays, dailyBonusPct]
+      properties:
+        active:
+          type: boolean
+          description: True while the membership is currently active
+        expiresAt:
+          type: ["string", "null"]
+          description: ISO expiry of the membership, or null if never bought
+        costGems:
+          type: integer
+          description: Gem cost of one membership period
+        durationDays:
+          type: integer
+          description: Length of one membership period, in days
+        dailyBonusPct:
+          type: integer
+          description: How much VIP boosts Daily Task rewards, as a percentage
+
+    VipPurchaseResult:
+      type: object
+      required: [status, balance]
+      properties:
+        status:
+          $ref: "#/components/schemas/VipStatus"
+        balance:
+          $ref: "#/components/schemas/Wallet"
 
     PlayerHome:
       type: object

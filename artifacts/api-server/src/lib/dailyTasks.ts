@@ -5,6 +5,7 @@ import {
   playerStreaksTable,
 } from "@workspace/db";
 import { adjustWithinTx, getOrCreateWallet, type Balance, type Currency } from "./wallet";
+import { applyVipBonus, isVipActive } from "./vip";
 
 /**
  * Daily Tasks + login streak for Neura City.
@@ -93,6 +94,8 @@ export interface DailyState {
   dayKey: string;
   streak: number;
   longestStreak: number;
+  /** True when VIP is active — reward amounts already include the VIP bonus. */
+  vip: boolean;
   tasks: DailyTaskView[];
 }
 
@@ -256,6 +259,9 @@ export async function getDailyState(userId: number): Promise<DailyState> {
   // Fetching the board counts as logging in today.
   await bumpProgress(userId, dayKey, "login", 1);
 
+  // VIP boosts every reward — reflect it in the amounts the board shows.
+  const vip = await isVipActive(userId);
+
   const rows = await db
     .select()
     .from(dailyTaskProgressTable)
@@ -270,8 +276,9 @@ export async function getDailyState(userId: number): Promise<DailyState> {
   const tasks: DailyTaskView[] = DAILY_TASKS.map((def) => {
     const row = byTask.get(def.id);
     const progress = row?.progress ?? 0;
-    const rewardAmount =
+    const baseReward =
       def.id === "login" ? loginRewardAmount(streak.current) : def.reward.amount;
+    const rewardAmount = applyVipBonus(baseReward, vip);
     return {
       id: def.id,
       title: def.title,
@@ -289,6 +296,7 @@ export async function getDailyState(userId: number): Promise<DailyState> {
     dayKey,
     streak: streak.current,
     longestStreak: streak.longest,
+    vip,
     tasks,
   };
 }
@@ -305,6 +313,7 @@ export async function claimTask(userId: number, taskId: string): Promise<ClaimRe
 
   const dayKey = todayKey();
   await getOrCreateWallet(userId);
+  const vip = await isVipActive(userId);
 
   return db.transaction(async (tx) => {
     const [row] = await tx
@@ -323,15 +332,17 @@ export async function claimTask(userId: number, taskId: string): Promise<ClaimRe
       throw new TaskNotCompleteError(taskId);
     }
 
-    // Reward amount for the check-in scales with the current streak.
-    let rewardAmount = def.reward.amount;
+    // Reward amount for the check-in scales with the current streak; VIP then
+    // boosts whatever the base amount is.
+    let baseReward = def.reward.amount;
     if (def.id === "login") {
       const [streakRow] = await tx
         .select({ current: playerStreaksTable.currentStreak })
         .from(playerStreaksTable)
         .where(eq(playerStreaksTable.userId, userId));
-      rewardAmount = loginRewardAmount(streakRow?.current ?? 1);
+      baseReward = loginRewardAmount(streakRow?.current ?? 1);
     }
+    const rewardAmount = applyVipBonus(baseReward, vip);
 
     if (row.claimed) {
       const balance = await getOrCreateWallet(userId);

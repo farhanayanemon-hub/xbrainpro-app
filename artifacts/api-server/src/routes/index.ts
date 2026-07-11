@@ -13,6 +13,7 @@ import walletRouter from "./wallet";
 import engagementRouter from "./engagement";
 import apartmentRouter from "./apartment";
 import contestRouter from "./contest";
+import vipRouter from "./vip";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(walletRouter);
 router.use(engagementRouter);
 router.use(apartmentRouter);
 router.use(contestRouter);
+router.use(vipRouter);
 
 export default router;

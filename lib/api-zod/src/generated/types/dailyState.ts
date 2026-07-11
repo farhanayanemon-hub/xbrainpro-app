@@ -13,5 +13,7 @@ export interface DailyState {
   /** Consecutive days logged in, including today */
   streak: number;
   longestStreak: number;
+  /** True when VIP is active — reward amounts already include the VIP bonus */
+  vip?: boolean;
   tasks: DailyTask[];
 }

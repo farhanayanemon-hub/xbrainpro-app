@@ -25,6 +25,7 @@ import LobbyAvatarStage from "@/components/lobby/LobbyAvatarStage";
 import MysteryBoxPanel from "@/components/lobby/MysteryBoxPanel";
 import ContestPanel from "@/components/lobby/ContestPanel";
 import StorePanel from "@/components/lobby/StorePanel";
+import VipPanel from "@/components/lobby/VipPanel";
 import {
   claimTask,
   fetchDailyTasks,
@@ -44,6 +45,7 @@ import {
   submitEntry,
   type ContestState,
 } from "@/lib/fashionContest";
+import { buyVip, fetchVip, type VipStatus } from "@/lib/vip";
 import {
   AVATAR_MAP,
   GENDER_AVATAR,
@@ -78,7 +80,8 @@ type MenuItem = {
     | "daily"
     | "box"
     | "apartment"
-    | "contest";
+    | "contest"
+    | "vip";
 };
 
 // Only shipping features live here — placeholder tiles are added back when
@@ -88,6 +91,7 @@ const MENU: MenuItem[] = [
   { key: "daily", icon: "✅", label: "DAILY", action: "daily" },
   { key: "box", icon: "🎁", label: "MYSTERY", action: "box" },
   { key: "contest", icon: "👗", label: "CONTEST", action: "contest" },
+  { key: "vip", icon: "👑", label: "VIP", action: "vip" },
   { key: "apartment", icon: "🏠", label: "APARTMENT", action: "apartment" },
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character" },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends" },
@@ -345,6 +349,12 @@ export default function LobbyScreen({
   const [contestEntering, setContestEntering] = useState(false);
   const [contestVotingId, setContestVotingId] = useState<number | null>(null);
   const [contestNotice, setContestNotice] = useState<string | null>(null);
+  // VIP sheet + its server-owned status (active flag, expiry, offer terms).
+  const [vipOpen, setVipOpen] = useState(false);
+  const [vipStatus, setVipStatus] = useState<VipStatus | null>(null);
+  const [vipLoading, setVipLoading] = useState(false);
+  const [vipBuying, setVipBuying] = useState(false);
+  const [vipNotice, setVipNotice] = useState<string | null>(null);
   // Unread private messages across all friends — badges the 👥 button.
   const [unreadTotal, setUnreadTotal] = useState(0);
   // The equipped look — this is what persists and carries into the city.
@@ -413,6 +423,13 @@ export default function LobbyScreen({
       })
       .catch(() => {
         /* non-fatal: pills stay at last known / dashes until a retry */
+      });
+    void fetchVip()
+      .then((s) => {
+        if (!cancelled) setVipStatus(s);
+      })
+      .catch(() => {
+        /* non-fatal: badge just stays hidden until a retry */
       });
     return () => {
       cancelled = true;
@@ -605,6 +622,40 @@ export default function LobbyScreen({
     void saveAvatarId(id);
   };
 
+  // --- VIP ---------------------------------------------------------------- //
+  const openVip = () => {
+    setVipNotice(null);
+    setVipOpen(true);
+    setVipLoading(true);
+    void fetchVip()
+      .then((s) => setVipStatus(s))
+      .catch(() => setVipNotice("Couldn't load VIP. Try again."))
+      .finally(() => setVipLoading(false));
+  };
+
+  const handleBuyVip = () => {
+    if (vipBuying) return; // one purchase at a time
+    setVipNotice(null);
+    setVipBuying(true);
+    void buyVip()
+      .then((res) => {
+        setVipStatus(res.status);
+        setWallet(res.balance);
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        setVipNotice(apiError(err, "Couldn't complete purchase. Try again."));
+        // Re-sync balance + status in case the server state moved.
+        void fetchWallet()
+          .then((w) => setWallet(w))
+          .catch(() => {});
+        void fetchVip()
+          .then((s) => setVipStatus(s))
+          .catch(() => {});
+      })
+      .finally(() => setVipBuying(false));
+  };
+
   // The 3D hero shows the previewed look while browsing the store, otherwise
   // the equipped one.
   const heroAvatarId = storeOpen ? previewId : equippedId;
@@ -633,6 +684,9 @@ export default function LobbyScreen({
         break;
       case "contest":
         openContest();
+        break;
+      case "vip":
+        openVip();
         break;
       case "apartment":
         onApartment();
@@ -683,9 +737,16 @@ export default function LobbyScreen({
             </View>
           </View>
           <View style={{ maxWidth: 168 }}>
-            <Text style={styles.playerName} numberOfLines={1}>
-              {profile.displayName}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.playerName} numberOfLines={1}>
+                {profile.displayName}
+              </Text>
+              {vipStatus?.active && (
+                <View style={styles.vipBadge}>
+                  <Text style={styles.vipBadgeText}>👑 VIP</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.statusRow}>
               <View style={styles.onlineDotWrap}>
                 <Animated.View
@@ -912,6 +973,21 @@ export default function LobbyScreen({
         />
       )}
 
+      {vipOpen && (
+        <VipPanel
+          status={vipStatus}
+          gems={wallet?.gems ?? 0}
+          loading={vipLoading}
+          buying={vipBuying}
+          notice={vipNotice}
+          onBuy={handleBuyVip}
+          onClose={() => {
+            playBack();
+            setVipOpen(false);
+          }}
+        />
+      )}
+
     </View>
   );
 }
@@ -969,7 +1045,22 @@ const styles = StyleSheet.create({
     borderColor: "#10142a",
   },
   levelChipText: { fontFamily: fonts.bold, fontSize: 9, color: "#fff" },
-  playerName: { fontFamily: fonts.headingSemi, fontSize: 15, color: "#fff" },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  playerName: { fontFamily: fonts.headingSemi, fontSize: 15, color: "#fff", flexShrink: 1 },
+  vipBadge: {
+    backgroundColor: "rgba(255,212,94,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,212,94,0.55)",
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  vipBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 8.5,
+    letterSpacing: 0.5,
+    color: "#ffd45e",
+  },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
   onlineDotWrap: {
     width: 8,

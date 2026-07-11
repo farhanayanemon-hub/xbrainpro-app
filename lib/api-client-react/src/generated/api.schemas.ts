@@ -119,6 +119,8 @@ export interface DailyState {
   /** Consecutive days logged in, including today */
   streak: number;
   longestStreak: number;
+  /** True when VIP is active — reward amounts already include the VIP bonus */
+  vip?: boolean;
   tasks: DailyTask[];
 }
 
@@ -267,6 +269,27 @@ export interface EnterContestInput {
 export interface VoteContestInput {
   /** The entry to vote for */
   entryId: number;
+}
+
+export interface VipStatus {
+  /** True while the membership is currently active */
+  active: boolean;
+  /**
+     * ISO expiry of the membership, or null if never bought
+     * @nullable
+     */
+  expiresAt: string | null;
+  /** Gem cost of one membership period */
+  costGems: number;
+  /** Length of one membership period, in days */
+  durationDays: number;
+  /** How much VIP boosts Daily Task rewards, as a percentage */
+  dailyBonusPct: number;
+}
+
+export interface VipPurchaseResult {
+  status: VipStatus;
+  balance: Wallet;
 }
 
 export interface PlayerHome {
