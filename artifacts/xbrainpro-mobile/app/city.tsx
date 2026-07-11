@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AvatarPicker from "@/components/AvatarPicker";
 import CameraControl from "@/components/CameraControl";
+import CityChat from "@/components/CityChat";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Hud from "@/components/Hud";
 import Joystick from "@/components/Joystick";
@@ -75,6 +76,7 @@ export default function NeuraCity() {
   const [inside, setInside] = useState(false);
   const [nearInteract, setNearInteract] = useState<Interactable | null>(null);
   const [sleeping, setSleeping] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [remoteIds, setRemoteIds] = useState<string[]>([]);
   const [resProgress, setResProgress] = useState<ResourceProgress>({
     done: 0,
@@ -285,9 +287,10 @@ export default function NeuraCity() {
   }, [ready]);
 
   useEffect(() => {
-    game.frozen = paused || pickingAvatar || chatNpcId !== null || sleeping;
+    game.frozen =
+      paused || pickingAvatar || chatNpcId !== null || sleeping || chatOpen;
     if (game.frozen) resetInput();
-  }, [paused, pickingAvatar, chatNpcId, sleeping]);
+  }, [paused, pickingAvatar, chatNpcId, sleeping, chatOpen]);
 
   const onSelectAvatar = useCallback((id: string) => {
     userPickedAvatar.current = true;
@@ -440,6 +443,15 @@ export default function NeuraCity() {
           <Text style={styles.sleepText}>Resting…</Text>
         </Animated.View>
       )}
+
+      {/* City chat: collapsed 💬 button + expandable feed on the left.
+          Mounted after the HUD/action controls so its expanded backdrop
+          sits above them and blocks world actions while chatting. */}
+      <CityChat
+        open={chatOpen}
+        onOpen={() => setChatOpen(true)}
+        onClose={() => setChatOpen(false)}
+      />
 
       {chatNpc && <NpcChat npc={chatNpc} onClose={() => setChatNpcId(null)} />}
       {paused && (

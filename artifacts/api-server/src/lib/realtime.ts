@@ -16,17 +16,30 @@ import { logger } from "./logger";
  *     { t: "move", x, z, h }                  throttled position/heading
  *     { t: "avatar", avatarId }               avatar changed mid-session
  *     { t: "vis", v: boolean }                false while inside a private home
+ *     { t: "chat", text }                     city chat message
  *   server -> client:
  *     { t: "welcome", id }                    your own player id
  *     { t: "snapshot", players: Player[] }    everyone already online
  *     { t: "join", player: Player }           someone appeared
  *     { t: "leave", id }                      someone disappeared
  *     { t: "state", id, x, z, h }             someone moved
+ *     { t: "chat", msg: ChatWire }            someone said something
+ *     { t: "chatlog", messages: ChatWire[] }  recent history, once on connect
  */
 
 const WORLD_LIMIT = 60; // generous clamp; city bound is ~34
 const MOVE_MIN_INTERVAL_MS = 40; // ~25 msgs/sec ceiling per client
 const HEARTBEAT_MS = 30_000;
+const CHAT_MAX_LEN = 120;
+const CHAT_MIN_INTERVAL_MS = 1200; // one message per ~1.2s per player
+const CHAT_HISTORY_MAX = 30;
+
+interface ChatWire {
+  id: string;
+  name: string;
+  text: string;
+  ts: number;
+}
 
 interface Client {
   ws: WebSocket;
@@ -41,6 +54,7 @@ interface Client {
   visible: boolean;
   alive: boolean;
   lastMoveAt: number;
+  lastChatAt: number;
 }
 
 interface PlayerWire {
@@ -106,6 +120,9 @@ export function attachRealtime(server: Server): WebSocketServer {
   // Keyed by public id so a reconnecting user replaces their old socket.
   const clients = new Map<string, Client>();
   liveClients = clients;
+
+  // Session-only city chat history so newcomers see recent conversation.
+  const chatHistory: ChatWire[] = [];
 
   function broadcast(msg: unknown, exceptId?: string): void {
     const data = JSON.stringify(msg);
@@ -206,11 +223,15 @@ export function attachRealtime(server: Server): WebSocketServer {
       visible: true,
       alive: true,
       lastMoveAt: 0,
+      lastChatAt: 0,
     };
     clients.set(id, client);
     registeredId = id;
 
     send(ws, { t: "welcome", id });
+    if (chatHistory.length > 0) {
+      send(ws, { t: "chatlog", messages: chatHistory });
+    }
 
     ws.on("pong", () => {
       client.alive = true;
@@ -259,6 +280,24 @@ export function attachRealtime(server: Server): WebSocketServer {
               id,
             );
           }
+          break;
+        }
+        case "chat": {
+          // Hidden players (inside interiors) may still chat; only rate/length
+          // limits apply. Text is trimmed and hard-capped server-side.
+          const now = Date.now();
+          if (now - client.lastChatAt < CHAT_MIN_INTERVAL_MS) return;
+          const raw = msg["text"];
+          if (typeof raw !== "string") break;
+          const text = raw.trim().slice(0, CHAT_MAX_LEN);
+          if (!text) break;
+          client.lastChatAt = now;
+          const entry: ChatWire = { id, name: client.name, text, ts: now };
+          chatHistory.push(entry);
+          if (chatHistory.length > CHAT_HISTORY_MAX) chatHistory.shift();
+          // Everyone including the sender gets the canonical broadcast, so the
+          // sender's own feed/bubble reflects exactly what others see.
+          broadcast({ t: "chat", msg: entry });
           break;
         }
         case "vis": {

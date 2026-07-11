@@ -8,6 +8,7 @@
  * roster so avatars mount/unmount as players join/leave.
  */
 import { DEFAULT_AVATAR_ID } from "@/game/avatar";
+import { clearBubbles, setBubble } from "@/game/bubbles";
 import { labels } from "@/game/labels";
 
 export interface RemotePlayer {
@@ -49,6 +50,45 @@ export interface SelfState {
 type SelfGetter = () => SelfState;
 
 type RosterListener = (ids: string[]) => void;
+
+/** One city chat message as broadcast by the server. */
+export interface ChatMessage {
+  id: string;
+  name: string;
+  text: string;
+  ts: number;
+}
+
+export const CHAT_MAX_LEN = 120;
+const CHAT_FEED_MAX = 50;
+
+/** Rolling feed of recent chat messages (oldest first). */
+const chatFeed: ChatMessage[] = [];
+
+type ChatListener = (feed: ChatMessage[]) => void;
+const chatListeners = new Set<ChatListener>();
+
+function emitChat(): void {
+  const snapshot = [...chatFeed];
+  for (const cb of chatListeners) cb(snapshot);
+}
+
+export function subscribeChat(cb: ChatListener): () => void {
+  chatListeners.add(cb);
+  cb([...chatFeed]);
+  return () => {
+    chatListeners.delete(cb);
+  };
+}
+
+/** Send a chat message to everyone in the city. */
+export function sendChat(text: string): void {
+  const t = text.trim().slice(0, CHAT_MAX_LEN);
+  if (!t) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ t: "chat", text: t }));
+  }
+}
 
 let ws: WebSocket | null = null;
 let selfGetter: SelfGetter | null = null;
@@ -167,6 +207,27 @@ function handleMessage(raw: string): void {
       }
       break;
     }
+    case "chat": {
+      const m = msg["msg"] as ChatMessage | undefined;
+      if (!m || typeof m.text !== "string" || typeof m.id !== "string") break;
+      chatFeed.push(m);
+      if (chatFeed.length > CHAT_FEED_MAX) chatFeed.shift();
+      // Speech bubble over the speaker's head ("me" for the local player).
+      setBubble(m.id === myId ? "me" : m.id, m.text);
+      emitChat();
+      break;
+    }
+    case "chatlog": {
+      const list = Array.isArray(msg["messages"])
+        ? (msg["messages"] as ChatMessage[])
+        : [];
+      chatFeed.length = 0;
+      for (const m of list) {
+        if (m && typeof m.text === "string") chatFeed.push(m);
+      }
+      emitChat();
+      break;
+    }
     default:
       break;
   }
@@ -225,6 +286,11 @@ function open(token: string): void {
     stopSendLoop();
     remote.clear();
     labels.clear();
+    clearBubbles();
+    // Drop the feed too — the server re-sends its authoritative history
+    // ("chatlog") on reconnect, so stale messages never linger.
+    chatFeed.length = 0;
+    emitChat();
     emitRoster();
     if (!intentionalClose) scheduleReconnect(token);
   };
@@ -268,6 +334,9 @@ export function disconnect(): void {
   ws = null;
   remote.clear();
   labels.clear();
+  clearBubbles();
+  chatFeed.length = 0;
+  emitChat();
   emitRoster();
 }
 

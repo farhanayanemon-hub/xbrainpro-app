@@ -1,5 +1,8 @@
+import { useFrame, useThree } from "@react-three/fiber";
 import React, { useEffect } from "react";
+import { Vector3 } from "three";
 
+import { localHead } from "@/game/bubbles";
 import type { HouseDef } from "@/game/cityLayout";
 import CityScene from "@/game/CityScene";
 import { Sky } from "@/game/drei";
@@ -7,10 +10,29 @@ import InteriorScene from "@/game/InteriorScene";
 import Npc from "@/game/Npc";
 import Player from "@/game/Player";
 import RemotePlayer from "@/game/RemotePlayer";
+import { game } from "@/game/store";
 import TrafficCars from "@/game/TrafficCars";
 import type { Interactable, ParsedWorldMap } from "@/game/worldMap";
 
 const SUN_POSITION: [number, number, number] = [35, 42, -20];
+
+const _localHeadV = new Vector3();
+
+/**
+ * Projects the local player's head to screen pixels every frame so the RN
+ * overlay can draw the player's own chat bubble in the right spot.
+ */
+function LocalHeadProjector() {
+  const { camera, size } = useThree();
+  useFrame(() => {
+    _localHeadV.set(game.player.x, 2.35, game.player.z);
+    _localHeadV.project(camera);
+    localHead.sx = (_localHeadV.x * 0.5 + 0.5) * size.width;
+    localHead.sy = (-_localHeadV.y * 0.5 + 0.5) * size.height;
+    localHead.visible = _localHeadV.z <= 1;
+  });
+  return null;
+}
 
 /** A glowing marker floating above the player's own house. */
 function HomeBeacon({ house }: { house: HouseDef }) {
@@ -102,6 +124,7 @@ export default function WorldScene({
       {remoteIds.map((id) => (
         <RemotePlayer key={id} id={id} />
       ))}
+      <LocalHeadProjector />
       <Player
         avatarId={avatarId}
         onNearNpc={onNearNpc}
