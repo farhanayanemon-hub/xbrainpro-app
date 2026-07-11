@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Pressable,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import ApartmentEditor from "@/components/ApartmentEditor";
 import AvatarPicker from "@/components/AvatarPicker";
 import CameraControl from "@/components/CameraControl";
 import CityChat from "@/components/CityChat";
@@ -49,9 +51,11 @@ import {
   setActiveWorldMap,
   setInteractables,
   INTERIOR_SPAWN,
+  INTERIOR_EXIT,
   type Interactable,
   type ParsedWorldMap,
 } from "@/game/worldMap";
+import { useApartment } from "@/game/useApartment";
 import WorldScene from "@/game/WorldScene";
 import { connect, disconnect, setVisible, subscribeRoster } from "@/game/net";
 import { loadToken } from "@/lib/session";
@@ -97,10 +101,17 @@ export default function NeuraCity() {
   // interior's runtime world state if an async map load resolves late.
   const insideRef = useRef(false);
 
+  // The player's decorate-able apartment: layout + decorate-mode state.
+  const apartment = useApartment();
+
   // "Join a friend" deep link: drop the player next to the friend's live
   // position (with a small offset so they don't overlap). Applied once on
   // mount, before the scene reads game.player, so the first frame spawns right.
-  const { sx, sz } = useLocalSearchParams<{ sx?: string; sz?: string }>();
+  const { sx, sz, home } = useLocalSearchParams<{
+    sx?: string;
+    sz?: string;
+    home?: string;
+  }>();
   const spawnApplied = useRef(false);
   if (!spawnApplied.current) {
     spawnApplied.current = true;
@@ -258,10 +269,31 @@ export default function NeuraCity() {
     setVisible(!inside);
   }, [inside]);
 
-  // When we're outside and know our plot, the only enterable door is our own
-  // home. (All houses are solid; you can't walk into strangers' houses.)
+  // Contextual prompts. Outside: the door to my own home. Inside: the exit,
+  // plus a "Sleep" prompt on a placed bed. While decorating, no prompts show —
+  // the editor overlay owns the screen. (All houses are solid; you can't walk
+  // into strangers' houses.)
   useEffect(() => {
-    if (inside) return;
+    if (inside) {
+      if (apartment.editing) {
+        setInteractables([]);
+        return;
+      }
+      const list: Interactable[] = [INTERIOR_EXIT];
+      const bed = apartment.layout.find((f) => f.item === "bed");
+      if (bed) {
+        list.push({
+          id: "bed",
+          kind: "bed",
+          x: bed.x,
+          z: bed.z + 1.7,
+          radius: 1.7,
+          label: "Sleep",
+        });
+      }
+      setInteractables(list);
+      return;
+    }
     if (!myHouse) {
       setInteractables([]);
       return;
@@ -277,7 +309,7 @@ export default function NeuraCity() {
         label: "Enter home",
       },
     ]);
-  }, [inside, myHouse]);
+  }, [inside, myHouse, apartment.editing, apartment.layout]);
 
   useEffect(() => {
     if (ready) {
@@ -288,9 +320,14 @@ export default function NeuraCity() {
 
   useEffect(() => {
     game.frozen =
-      paused || pickingAvatar || chatNpcId !== null || sleeping || chatOpen;
+      paused ||
+      pickingAvatar ||
+      chatNpcId !== null ||
+      sleeping ||
+      chatOpen ||
+      apartment.editing;
     if (game.frozen) resetInput();
-  }, [paused, pickingAvatar, chatNpcId, sleeping, chatOpen]);
+  }, [paused, pickingAvatar, chatNpcId, sleeping, chatOpen, apartment.editing]);
 
   const onSelectAvatar = useCallback((id: string) => {
     userPickedAvatar.current = true;
@@ -305,9 +342,9 @@ export default function NeuraCity() {
   );
 
   const enterHome = useCallback(() => {
-    // Stream the interior zone's CDN assets on demand (bundled fallbacks render
-    // meanwhile); no-op today since the interior uses no downloadable assets.
-    void ensureZoneCached("interior");
+    // Stream the apartment zone's furniture GLBs on demand (built-in primitives
+    // render meanwhile, so the room is never empty while models download).
+    void ensureZoneCached("apartment");
     setActiveInterior();
     game.player.x = INTERIOR_SPAWN.x;
     game.player.z = INTERIOR_SPAWN.z;
@@ -317,6 +354,15 @@ export default function NeuraCity() {
     setNearInteract(null);
     setInside(true);
   }, []);
+
+  // "Open my apartment" deep link (from the lobby menu): once the world is
+  // ready, walk straight into the home interior. Applied once.
+  const homeEntered = useRef(false);
+  useEffect(() => {
+    if (home !== "1" || homeEntered.current || !ready) return;
+    homeEntered.current = true;
+    enterHome();
+  }, [home, ready, enterHome]);
 
   const leaveHome = useCallback(() => {
     setActiveWorldMap(worldMap);
@@ -390,6 +436,10 @@ export default function NeuraCity() {
                 inside={inside}
                 homePlot={homePlot}
                 remoteIds={inside ? [] : remoteIds}
+                apartmentLayout={apartment.layout}
+                editingApartment={apartment.editing}
+                selectedFurnitureUid={apartment.selectedUid}
+                onSelectFurniture={apartment.setSelectedUid}
                 onNearNpc={onNearNpc}
                 onNearInteract={onNearInteract}
                 onLoaded={() => setReady(true)}
@@ -416,9 +466,42 @@ export default function NeuraCity() {
         onPause={() => setPaused(true)}
       />
 
+      {/* Decorate button — only inside your apartment, and not while already
+          decorating. Opens the furniture editor overlay. */}
+      {inside && !apartment.editing && (
+        <Pressable
+          style={[styles.decorateBtn, { top: insets.top + 12 }]}
+          onPress={apartment.startEditing}
+        >
+          <Text style={styles.decorateIcon}>🛋️</Text>
+          <Text style={styles.decorateText}>Decorate</Text>
+        </Pressable>
+      )}
+
+      {/* Furniture editor overlay (add / move / rotate / remove + save). */}
+      {inside && apartment.editing && (
+        <ApartmentEditor
+          ctrl={apartment}
+          onDone={async () => {
+            // Only leave decorate mode once the layout is safely saved, so a
+            // failed save never silently drops the player's arrangement.
+            const ok = await apartment.save();
+            if (!ok) {
+              Alert.alert(
+                "Save failed",
+                "Could not save your apartment. Please try again.",
+              );
+              return;
+            }
+            apartment.setSelectedUid(null);
+            apartment.setEditing(false);
+          }}
+        />
+      )}
+
       {/* Contextual action button (enter home / sleep / leave). Sits left of
           the TALK button so both can show at once without overlapping. */}
-      {nearInteract && !nearNpc && (
+      {nearInteract && !nearNpc && !apartment.editing && (
         <Pressable
           style={[styles.actionBtn, { bottom: 60 + insets.bottom }]}
           onPress={onAction}
@@ -568,6 +651,29 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginTop: 2,
     textAlign: "center",
+  },
+  decorateBtn: {
+    position: "absolute",
+    right: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    backgroundColor: "#2fae87",
+    shadowColor: "#2fae87",
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+  decorateIcon: { fontSize: 16 },
+  decorateText: {
+    fontFamily: fonts.heading,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    color: "#fff",
   },
   sleepOverlay: {
     ...StyleSheet.absoluteFillObject,

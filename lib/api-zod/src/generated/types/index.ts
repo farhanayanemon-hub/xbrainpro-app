@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './apartment';
 export * from './authResult';
 export * from './avatarUpload';
 export * from './badge';
@@ -35,6 +36,7 @@ export * from './npcChatTurnRole';
 export * from './openMysteryBoxInput';
 export * from './openMysteryBoxResult';
 export * from './path';
+export * from './placedFurniture';
 export * from './playerHome';
 export * from './playerPhotoUpload';
 export * from './playerProfile';
@@ -52,6 +54,7 @@ export * from './registerInput';
 export * from './reminder';
 export * from './reminderInput';
 export * from './reminderUpdate';
+export * from './saveApartmentInput';
 export * from './task';
 export * from './taskCompletionResult';
 export * from './user';

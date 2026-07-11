@@ -62,7 +62,7 @@ type MenuItem = {
   key: string;
   icon: string;
   label: string;
-  action: "play" | "friends" | "character" | "store" | "daily" | "box";
+  action: "play" | "friends" | "character" | "store" | "daily" | "box" | "apartment";
 };
 
 // Only shipping features live here — placeholder tiles are added back when
@@ -71,6 +71,7 @@ const MENU: MenuItem[] = [
   { key: "store", icon: "🛍️", label: "STORE", action: "store" },
   { key: "daily", icon: "✅", label: "DAILY", action: "daily" },
   { key: "box", icon: "🎁", label: "MYSTERY", action: "box" },
+  { key: "apartment", icon: "🏠", label: "APARTMENT", action: "apartment" },
   { key: "character", icon: "🧍", label: "CHARACTER", action: "character" },
   { key: "friends", icon: "👥", label: "FRIENDS", action: "friends" },
 ];
@@ -294,12 +295,14 @@ function ResourcePill({
 export default function LobbyScreen({
   profile,
   onPlay,
+  onApartment,
   onEditProfile,
   onLogout,
   onJoinFriend,
 }: {
   profile: PlayerProfile;
   onPlay: () => void;
+  onApartment: () => void;
   onEditProfile: () => void;
   onLogout: () => void;
   onJoinFriend: (target: JoinTarget) => void;
@@ -555,6 +558,9 @@ export default function LobbyScreen({
         break;
       case "box":
         openBoxSheet();
+        break;
+      case "apartment":
+        onApartment();
         break;
       default:
         onPlay();

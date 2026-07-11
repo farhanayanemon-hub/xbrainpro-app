@@ -210,6 +210,29 @@ export interface PlayerHome {
   plot: number;
 }
 
+export interface PlacedFurniture {
+  /** Unique id for this placed instance within the layout. */
+  uid: string;
+  /** Catalog id — a built-in furniture id or an "apartment" zone model id. */
+  item: string;
+  /** Floor X position inside the room. */
+  x: number;
+  /** Floor Z position inside the room. */
+  z: number;
+  /** Yaw rotation in radians. */
+  rotY: number;
+}
+
+export interface Apartment {
+  layout: PlacedFurniture[];
+  /** True when this is the served starter layout, not yet saved by the player. */
+  isDefault: boolean;
+}
+
+export interface SaveApartmentInput {
+  layout: PlacedFurniture[];
+}
+
 export type PlayerProfileInputGender = typeof PlayerProfileInputGender[keyof typeof PlayerProfileInputGender];
 
 

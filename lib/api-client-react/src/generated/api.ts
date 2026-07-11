@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  Apartment,
   AuthResult,
   AvatarUpload,
   Badge,
@@ -53,6 +54,7 @@ import type {
   Reminder,
   ReminderInput,
   ReminderUpdate,
+  SaveApartmentInput,
   Task,
   TaskCompletionResult,
   User,
@@ -3106,6 +3108,155 @@ export const useOpenMysteryBox = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getOpenMysteryBoxMutationOptions(options));
+    }
+
+export const getGetApartmentUrl = () => {
+
+
+
+
+  return `/api/apartment`
+}
+
+/**
+ * Returns the saved furniture arrangement, or a default starter layout (isDefault=true) if the player has never decorated.
+ * @summary Get the player's apartment layout
+ */
+export const getApartment = async ( options?: RequestInit): Promise<Apartment> => {
+
+  return customFetch<Apartment>(getGetApartmentUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApartmentQueryKey = () => {
+    return [
+    `/api/apartment`
+    ] as const;
+    }
+
+
+export const getGetApartmentQueryOptions = <TData = Awaited<ReturnType<typeof getApartment>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getApartment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApartmentQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApartment>>> = ({ signal }) => getApartment({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApartment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApartmentQueryResult = NonNullable<Awaited<ReturnType<typeof getApartment>>>
+export type GetApartmentQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the player's apartment layout
+ */
+
+export function useGetApartment<TData = Awaited<ReturnType<typeof getApartment>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getApartment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetApartmentQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveApartmentUrl = () => {
+
+
+
+
+  return `/api/apartment`
+}
+
+/**
+ * Replaces the whole arrangement. The server validates items, clamps positions inside the room, and caps the item count.
+ * @summary Save the player's apartment layout
+ */
+export const saveApartment = async (saveApartmentInput: SaveApartmentInput, options?: RequestInit): Promise<Apartment> => {
+
+  return customFetch<Apartment>(getSaveApartmentUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveApartmentInput)
+  }
+);}
+
+
+
+
+export const getSaveApartmentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveApartment>>, TError,{data: BodyType<SaveApartmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveApartment>>, TError,{data: BodyType<SaveApartmentInput>}, TContext> => {
+
+const mutationKey = ['saveApartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveApartment>>, {data: BodyType<SaveApartmentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveApartment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveApartmentMutationResult = NonNullable<Awaited<ReturnType<typeof saveApartment>>>
+    export type SaveApartmentMutationBody = BodyType<SaveApartmentInput>
+    export type SaveApartmentMutationError = ErrorType<Error>
+
+    /**
+ * @summary Save the player's apartment layout
+ */
+export const useSaveApartment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveApartment>>, TError,{data: BodyType<SaveApartmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveApartment>>,
+        TError,
+        {data: BodyType<SaveApartmentInput>},
+        TContext
+      > => {
+      return useMutation(getSaveApartmentMutationOptions(options));
     }
 
 export const getGetWorldMapUrl = () => {

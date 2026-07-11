@@ -4,9 +4,10 @@ import { Vector3 } from "three";
 
 import { localHead } from "@/game/bubbles";
 import type { HouseDef } from "@/game/cityLayout";
+import ApartmentScene from "@/game/ApartmentScene";
 import CityScene from "@/game/CityScene";
 import { Sky } from "@/game/drei";
-import InteriorScene from "@/game/InteriorScene";
+import type { PlacedFurniture } from "@/game/furniture";
 import Npc from "@/game/Npc";
 import Player from "@/game/Player";
 import RemotePlayer from "@/game/RemotePlayer";
@@ -58,6 +59,10 @@ export default function WorldScene({
   inside,
   homePlot,
   remoteIds,
+  apartmentLayout,
+  editingApartment,
+  selectedFurnitureUid,
+  onSelectFurniture,
   onNearNpc,
   onNearInteract,
   onLoaded,
@@ -68,6 +73,11 @@ export default function WorldScene({
   homePlot: number | null;
   /** Ids of other online players to render (only shown while outside). */
   remoteIds: string[];
+  /** Furniture placed in the player's apartment (rendered while inside). */
+  apartmentLayout: PlacedFurniture[];
+  editingApartment: boolean;
+  selectedFurnitureUid: string | null;
+  onSelectFurniture: (uid: string) => void;
   onNearNpc: (npcId: string | null) => void;
   onNearInteract: (it: Interactable | null) => void;
   /** Fires once all suspended assets (models, textures) are ready. */
@@ -79,7 +89,14 @@ export default function WorldScene({
 
   if (inside) {
     return (
-      <InteriorScene avatarId={avatarId} onNearInteract={onNearInteract} />
+      <ApartmentScene
+        avatarId={avatarId}
+        layout={apartmentLayout}
+        editing={editingApartment}
+        selectedUid={selectedFurnitureUid}
+        onSelectFurniture={onSelectFurniture}
+        onNearInteract={onNearInteract}
+      />
     );
   }
 

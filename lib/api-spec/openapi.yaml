@@ -40,6 +40,8 @@ tags:
     description: Daily engagement tasks and login streak
   - name: mystery-box
     description: Mystery Box gem gambling
+  - name: apartment
+    description: Personal decorate-able apartment
 paths:
   /healthz:
     get:
@@ -931,6 +933,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /apartment:
+    get:
+      operationId: getApartment
+      tags: [apartment]
+      summary: Get the player's apartment layout
+      description: Returns the saved furniture arrangement, or a default starter layout (isDefault=true) if the player has never decorated.
+      responses:
+        "200":
+          description: The apartment layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Apartment"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: saveApartment
+      tags: [apartment]
+      summary: Save the player's apartment layout
+      description: Replaces the whole arrangement. The server validates items, clamps positions inside the room, and caps the item count.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveApartmentInput"
+      responses:
+        "200":
+          description: The saved layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Apartment"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /world/map:
     get:
       operationId: getWorldMap
@@ -1201,6 +1247,47 @@ components:
         plot:
           type: integer
           description: Index of the assigned residential house plot in the world map.
+
+    PlacedFurniture:
+      type: object
+      required: [uid, item, x, z, rotY]
+      properties:
+        uid:
+          type: string
+          description: Unique id for this placed instance within the layout.
+        item:
+          type: string
+          description: Catalog id — a built-in furniture id or an "apartment" zone model id.
+        x:
+          type: number
+          description: Floor X position inside the room.
+        z:
+          type: number
+          description: Floor Z position inside the room.
+        rotY:
+          type: number
+          description: Yaw rotation in radians.
+
+    Apartment:
+      type: object
+      required: [layout, isDefault]
+      properties:
+        layout:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlacedFurniture"
+        isDefault:
+          type: boolean
+          description: True when this is the served starter layout, not yet saved by the player.
+
+    SaveApartmentInput:
+      type: object
+      required: [layout]
+      properties:
+        layout:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlacedFurniture"
 
     PlayerProfileInput:
       type: object

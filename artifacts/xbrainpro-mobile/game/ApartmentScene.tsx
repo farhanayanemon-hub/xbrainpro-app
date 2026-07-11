@@ -1,20 +1,32 @@
 import React from "react";
 
+import FurniturePiece from "@/game/FurniturePiece";
+import type { PlacedFurniture } from "@/game/furniture";
 import Player from "@/game/Player";
-import { BED, INTERIOR_HALF, type Interactable } from "@/game/worldMap";
+import { INTERIOR_HALF, type Interactable } from "@/game/worldMap";
 
 const WALL_H = 3.2;
 const HALF = INTERIOR_HALF;
 
 /**
- * A small self-contained room shown when the player is inside their house.
- * Built entirely from primitives: floor, four walls, a bed and a lamp.
+ * The player's personal apartment: the same room shell as before (floor, four
+ * walls) but now furnished entirely from the player's saved layout instead of a
+ * hard-coded bed. In decorate mode each piece is selectable and a selection
+ * ring appears under the active one.
  */
-export default function InteriorScene({
+export default function ApartmentScene({
   avatarId,
+  layout,
+  editing,
+  selectedUid,
+  onSelectFurniture,
   onNearInteract,
 }: {
   avatarId: string;
+  layout: PlacedFurniture[];
+  editing: boolean;
+  selectedUid: string | null;
+  onSelectFurniture: (uid: string) => void;
   onNearInteract: (it: Interactable | null) => void;
 }) {
   return (
@@ -50,31 +62,22 @@ export default function InteriorScene({
         </mesh>
       ))}
 
-      {/* bed */}
-      <group position={[BED.x, 0, BED.z]}>
-        <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
-          <boxGeometry args={[BED.w, 0.55, BED.d]} />
-          <meshStandardMaterial color="#6d8ab0" roughness={0.85} />
-        </mesh>
-        {/* pillow */}
-        <mesh position={[0, 0.62, -BED.d / 2 + 0.5]} castShadow>
-          <boxGeometry args={[BED.w - 0.4, 0.22, 0.7]} />
-          <meshStandardMaterial color="#f4f1ea" roughness={0.9} />
-        </mesh>
-        {/* blanket */}
-        <mesh position={[0, 0.58, 0.4]} castShadow>
-          <boxGeometry args={[BED.w, 0.18, BED.d - 1.2]} />
-          <meshStandardMaterial color="#c8455f" roughness={0.85} />
-        </mesh>
-      </group>
+      {/* the player's furniture */}
+      {layout.map((piece) => (
+        <FurniturePiece
+          key={piece.uid}
+          piece={piece}
+          editing={editing}
+          selected={piece.uid === selectedUid}
+          onSelect={onSelectFurniture}
+        />
+      ))}
 
-      {/* small rug by the door */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 1.8]}>
-        <planeGeometry args={[2, 1.4]} />
-        <meshStandardMaterial color="#8a6bb0" roughness={0.9} />
-      </mesh>
-
-      <Player avatarId={avatarId} onNearNpc={() => {}} onNearInteract={onNearInteract} />
+      <Player
+        avatarId={avatarId}
+        onNearNpc={() => {}}
+        onNearInteract={onNearInteract}
+      />
     </>
   );
 }

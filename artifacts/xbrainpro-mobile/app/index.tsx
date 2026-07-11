@@ -226,6 +226,9 @@ export default function Gate() {
     <LobbyScreen
       profile={profile!}
       onPlay={() => router.push("/city")}
+      onApartment={() =>
+        router.push({ pathname: "/city", params: { home: "1" } })
+      }
       onEditProfile={() => setStage("editing")}
       onLogout={handleLogout}
       onJoinFriend={(target) =>

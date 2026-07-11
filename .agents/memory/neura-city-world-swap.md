@@ -39,3 +39,24 @@ desync from the rendered/colliding house.
 
 **Why:** bundled layout and DB seed can diverge; keying off the server data keeps
 interaction points aligned with what's actually rendered.
+
+# The interior IS the player's decorate-able apartment
+
+There is no separate "house interior" scene anymore — entering home renders
+`ApartmentScene` driven by the player's saved furniture layout (`useApartment`
+hook, `GET/PUT /apartment`). `setActiveInterior()` sets NO colliders: furniture
+is walk-through in v1. The "Sleep" prompt is derived from a placed `bed` item in
+the layout (not a fixed collider); if no bed is placed, there is no sleep prompt.
+Decorate mode (`apartment.editing`) must be added to `game.frozen` so the on-
+screen pad drives the selected piece, not the character.
+
+**Why:** a fixed bed collider/interactable was removed when the room became fully
+player-decorated; re-adding one would double up with the layout-driven prompt and
+block walking. Built-in furniture IDs must stay in sync between mobile
+`game/furniture.ts` and server `lib/apartment.ts` (bed, sofa, armchair, table,
+rug, plant, lamp, bookshelf, tv) or valid pieces get rejected on save.
+
+**How to apply:** save the whole layout on "Done" and only exit edit mode if the
+save succeeds (a failed save must not silently drop the arrangement). Furniture
+GLBs come from the "apartment" asset zone; `ensureZoneCached("apartment")` on
+enter. Lobby menu deep-links `/city?home=1` to auto-enter once the world is ready.

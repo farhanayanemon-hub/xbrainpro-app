@@ -11,6 +11,7 @@ import dmRouter from "./dm";
 import moderationRouter from "./moderation";
 import walletRouter from "./wallet";
 import engagementRouter from "./engagement";
+import apartmentRouter from "./apartment";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(dmRouter);
 router.use(moderationRouter);
 router.use(walletRouter);
 router.use(engagementRouter);
+router.use(apartmentRouter);
 
 export default router;

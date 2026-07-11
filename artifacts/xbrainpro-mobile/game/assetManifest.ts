@@ -108,6 +108,27 @@ export function sceneEntrySync(slot: string): AssetEntry | undefined {
 }
 
 /**
+ * All models placed in the "apartment" asset zone, from the last-seen manifest.
+ * These are the admin-uploaded furniture pieces a player can add to their room,
+ * on top of the built-in primitive starter set. Empty until the manifest loads
+ * or when no admin has uploaded apartment furniture yet.
+ */
+export function apartmentModelsSync(): AssetEntry[] {
+  return (
+    lastManifest?.assets.filter(
+      (a) => a.category === "model" && assetZone(a) === "apartment",
+    ) ?? []
+  );
+}
+
+/** Synchronous lookup of one apartment-zone model entry by id. */
+export function apartmentModelEntrySync(id: string): AssetEntry | undefined {
+  return lastManifest?.assets.find(
+    (a) => a.category === "model" && a.id === id && assetZone(a) === "apartment",
+  );
+}
+
+/**
  * Fetch the manifest, memoized for the session so avatar/model/texture
  * resolution all share one network round-trip. Pass `force` to bypass.
  */

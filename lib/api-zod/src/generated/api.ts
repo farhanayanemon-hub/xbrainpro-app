@@ -887,6 +887,48 @@ export const OpenMysteryBoxResponse = zod.object({
 
 
 /**
+ * Returns the saved furniture arrangement, or a default starter layout (isDefault=true) if the player has never decorated.
+ * @summary Get the player's apartment layout
+ */
+export const GetApartmentResponse = zod.object({
+  "layout": zod.array(zod.object({
+  "uid": zod.string().describe('Unique id for this placed instance within the layout.'),
+  "item": zod.string().describe('Catalog id — a built-in furniture id or an \"apartment\" zone model id.'),
+  "x": zod.number().describe('Floor X position inside the room.'),
+  "z": zod.number().describe('Floor Z position inside the room.'),
+  "rotY": zod.number().describe('Yaw rotation in radians.')
+})),
+  "isDefault": zod.boolean().describe('True when this is the served starter layout, not yet saved by the player.')
+})
+
+
+/**
+ * Replaces the whole arrangement. The server validates items, clamps positions inside the room, and caps the item count.
+ * @summary Save the player's apartment layout
+ */
+export const SaveApartmentBody = zod.object({
+  "layout": zod.array(zod.object({
+  "uid": zod.string().describe('Unique id for this placed instance within the layout.'),
+  "item": zod.string().describe('Catalog id — a built-in furniture id or an \"apartment\" zone model id.'),
+  "x": zod.number().describe('Floor X position inside the room.'),
+  "z": zod.number().describe('Floor Z position inside the room.'),
+  "rotY": zod.number().describe('Yaw rotation in radians.')
+}))
+})
+
+export const SaveApartmentResponse = zod.object({
+  "layout": zod.array(zod.object({
+  "uid": zod.string().describe('Unique id for this placed instance within the layout.'),
+  "item": zod.string().describe('Catalog id — a built-in furniture id or an \"apartment\" zone model id.'),
+  "x": zod.number().describe('Floor X position inside the room.'),
+  "z": zod.number().describe('Floor Z position inside the room.'),
+  "rotY": zod.number().describe('Yaw rotation in radians.')
+})),
+  "isDefault": zod.boolean().describe('True when this is the served starter layout, not yet saved by the player.')
+})
+
+
+/**
  * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
  * @summary Get the current Neura City world map
  */

@@ -400,12 +400,20 @@ export function setInteractables(list: Interactable[]): void {
 
 /** Half-size of the square interior room and the resulting movement bound. */
 export const INTERIOR_HALF = 4.5;
-const INTERIOR_BOUND = INTERIOR_HALF - 0.6;
+export const INTERIOR_BOUND = INTERIOR_HALF - 0.6;
 
-/** Bed footprint against the back (−Z) wall. */
-export const BED = { x: 0, z: -2.6, w: 1.9, d: 2.6, h: 0.55 };
-/** Where the player spawns when entering (near the door, facing the bed). */
+/** Where the player spawns when entering (near the door). */
 export const INTERIOR_SPAWN = { x: 0, z: 2 };
+
+/** The always-present "leave" prompt inside the apartment. */
+export const INTERIOR_EXIT: Interactable = {
+  id: "exit",
+  kind: "exit",
+  x: 0,
+  z: INTERIOR_BOUND,
+  radius: 1.4,
+  label: "Leave home",
+};
 
 const INTERIOR_MAP: ParsedWorldMap = {
   version: 0,
@@ -421,28 +429,17 @@ const INTERIOR_MAP: ParsedWorldMap = {
   npcs: [],
 };
 
-const INTERIOR_INTERACTABLES: Interactable[] = [
-  { id: "bed", kind: "bed", x: BED.x, z: BED.z + BED.d / 2 + 0.4, radius: 1.7, label: "Sleep" },
-  { id: "exit", kind: "exit", x: 0, z: INTERIOR_BOUND, radius: 1.4, label: "Leave home" },
-];
-
-/** Switch the active world to the house interior room. */
+/**
+ * Switch the active world to the player's apartment room. Furniture is
+ * walk-through (no colliders) in v1; the city screen sets the contextual
+ * prompts (exit, and a "Sleep" prompt derived from a placed bed).
+ */
 export function setActiveInterior(): void {
   world.map = INTERIOR_MAP;
-  world.colliders = [
-    expand(
-      {
-        minX: BED.x - BED.w / 2,
-        maxX: BED.x + BED.w / 2,
-        minZ: BED.z - BED.d / 2,
-        maxZ: BED.z + BED.d / 2,
-      },
-      0.4,
-    ),
-  ];
+  world.colliders = [];
   world.bound = INTERIOR_BOUND;
   world.camDist = INTERIOR_CAM_DIST;
-  world.interactables = INTERIOR_INTERACTABLES;
+  world.interactables = [INTERIOR_EXIT];
 }
 
 // ---------------------------------------------------------------------------
