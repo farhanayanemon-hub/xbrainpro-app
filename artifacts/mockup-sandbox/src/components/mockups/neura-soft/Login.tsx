@@ -9,7 +9,7 @@ export function Login() {
     <div className="neura-soft-theme relative w-[390px] h-[844px] bg-pink-100 overflow-hidden select-none">
       {/* Background */}
       <div 
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center animate-ken-burns origin-center"
         style={{ backgroundImage: 'url(/__mockup/images/neura-soft-bg.png)' }}
       />
       
@@ -20,18 +20,18 @@ export function Login() {
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-between py-16 px-6">
         
         {/* Logo Area */}
-        <div className="flex flex-col items-center mt-12 animate-bounce" style={{ animationDuration: '3s' }}>
-          <div className="w-24 h-24 bg-white/90 rounded-3xl shadow-[0_8px_32px_rgba(255,154,158,0.5)] border-4 border-white flex items-center justify-center mb-4 transform rotate-3">
+        <div className="flex flex-col items-center mt-12 animate-gentle-pulse">
+          <div className="w-24 h-24 bg-white/90 rounded-3xl shadow-[0_8px_32px_rgba(255,154,158,0.5)] border-4 border-white flex items-center justify-center mb-4 transform rotate-3 transition-transform hover:rotate-12 hover:scale-110 duration-300">
             <Gamepad2 className="w-12 h-12 text-pink-400" />
           </div>
           <h1 className="text-5xl font-black candy-text-white tracking-tight mb-2">NEURA</h1>
-          <div className="bg-white/80 backdrop-blur-sm px-4 py-1 rounded-full shadow-sm">
+          <div className="bg-white/80 backdrop-blur-sm px-4 py-1 rounded-full shadow-sm animate-pop-in" style={{ animationDelay: '0.2s' }}>
             <p className="text-pink-400 font-bold text-sm tracking-widest uppercase">The Soft City</p>
           </div>
         </div>
 
         {/* Login Form Panel */}
-        <div className="w-full soft-glass rounded-[2rem] p-6 flex flex-col gap-5 mb-8">
+        <div className="w-full soft-glass rounded-[2rem] p-6 flex flex-col gap-5 mb-8 animate-pop-in" style={{ animationDelay: '0.4s' }}>
           <div className="flex bg-white/50 rounded-full p-1 shadow-inner mb-2">
             <button 
               onClick={() => setIsLogin(true)}
@@ -71,12 +71,12 @@ export function Login() {
             </div>
           </div>
 
-          <button className="soft-button-primary w-full rounded-2xl py-4 mt-2 flex items-center justify-center gap-2 group">
+          <button className="soft-button-primary w-full rounded-2xl py-4 mt-2 flex items-center justify-center gap-2 group shimmer-effect hover:scale-105 active:scale-95 transition-transform duration-200">
             <span className="font-black text-xl tracking-wide uppercase">{isLogin ? 'Enter City' : 'Create Avatar'}</span>
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </button>
           
-          <button className="text-center font-bold text-gray-500 text-sm hover:text-pink-500 transition-colors mt-2">
+          <button className="text-center font-bold text-gray-500 text-sm hover:text-pink-500 transition-colors mt-2 active:scale-95">
             Continue as Guest
           </button>
         </div>

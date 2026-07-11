@@ -50,3 +50,109 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@keyframes lux-bg-drift {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes lux-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes lux-float-shadow {
+  0%, 100% { filter: drop-shadow(0 0 40px rgba(212,175,55,0.2)); }
+  50% { filter: drop-shadow(0 20px 30px rgba(212,175,55,0.1)); }
+}
+
+@keyframes lux-shimmer {
+  0% { transform: translateX(-150%) skewX(-15deg); }
+  100% { transform: translateX(150%) skewX(-15deg); }
+}
+
+@keyframes lux-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(212,175,55,0.3)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 25px rgba(212,175,55,0.8)); transform: scale(1.05); }
+}
+
+@keyframes lux-fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lux-particle-float {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-lux-bg-drift {
+    animation: lux-bg-drift 40s ease-in-out infinite;
+  }
+  .animate-lux-float {
+    animation: lux-float 4s ease-in-out infinite;
+  }
+  .animate-lux-float-shadow {
+    animation: lux-float-shadow 4s ease-in-out infinite;
+  }
+  .animate-lux-glow-pulse {
+    animation: lux-glow-pulse 3s ease-in-out infinite;
+  }
+  .animate-lux-fade-in-up {
+    animation: lux-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .lux-shimmer-wrapper {
+    position: relative;
+    overflow: hidden;
+  }
+  .lux-shimmer-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -20%;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    animation: lux-shimmer 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .lux-shimmer-slow::after {
+    animation-duration: 5s;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(212, 175, 55, 0.4) 50%,
+      transparent 100%
+    );
+  }
+  .lux-hover-scale {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  }
+  .lux-hover-scale:hover {
+    transform: scale(1.05);
+  }
+  .lux-hover-scale:active {
+    transform: scale(0.95);
+  }
+  
+  .lux-particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #d4af37;
+    border-radius: 50%;
+    box-shadow: 0 0 10px 2px rgba(212,175,55,0.8);
+    pointer-events: none;
+    animation: lux-particle-float linear infinite;
+  }
+}

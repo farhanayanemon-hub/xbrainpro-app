@@ -8,18 +8,36 @@ export function Login() {
   return (
     <div className="neura-lux relative w-[390px] h-[844px] overflow-hidden bg-[#0a0e17] text-white flex flex-col items-center justify-between mx-auto shadow-2xl">
       {/* Background Image */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/__mockup/images/neura-lux-bg.png')" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e17]/40 via-transparent to-[#0a0e17] z-10" />
+      <div className="absolute inset-0 overflow-hidden z-0">
+        <div 
+          className="absolute inset-[-10%] bg-cover bg-center animate-lux-bg-drift"
+          style={{ backgroundImage: "url('/__mockup/images/neura-lux-bg.png')" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e17]/40 via-transparent to-[#0a0e17] z-10" />
+        </div>
+        {/* Particles */}
+        <div className="absolute inset-0 z-10 overflow-hidden">
+          {[...Array(15)].map((_, i) => (
+            <div 
+              key={i} 
+              className="lux-particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDuration: `${Math.random() * 10 + 5}s`,
+                animationDelay: `${Math.random() * 5}s`,
+                opacity: 0
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Content */}
       <div className="relative z-20 w-full flex-1 flex flex-col items-center px-6 pt-24 pb-12">
         {/* Logo/Header */}
-        <div className="flex flex-col items-center mb-auto mt-8">
-          <div className="w-16 h-16 rounded-2xl neura-lux-glass-dark flex items-center justify-center mb-6">
+        <div className="flex flex-col items-center mb-auto mt-8 animate-lux-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="w-16 h-16 rounded-2xl neura-lux-glass-dark flex items-center justify-center mb-6 animate-lux-glow-pulse">
              <Sparkles className="w-8 h-8 text-[#d4af37]" />
           </div>
           <h1 className="neura-lux-title text-5xl font-bold tracking-tight text-center mb-3">
@@ -29,7 +47,7 @@ export function Login() {
         </div>
 
         {/* Login Form Panel */}
-        <div className="w-full neura-lux-glass-dark rounded-3xl p-6 mb-6">
+        <div className="w-full neura-lux-glass-dark rounded-3xl p-6 mb-6 animate-lux-fade-in-up" style={{ animationDelay: '0.3s' }}>
           <div className="flex gap-4 mb-8">
             <button 
               onClick={() => setIsSignUp(false)}
@@ -67,17 +85,17 @@ export function Login() {
 
           {!isSignUp && (
             <div className="text-right mt-3 mb-6">
-              <button className="text-xs text-[#d4af37]/80 hover:text-[#d4af37]">Forgot password?</button>
+              <button className="text-xs text-[#d4af37]/80 hover:text-[#d4af37] transition-colors">Forgot password?</button>
             </div>
           )}
 
-          <button className="neura-lux-btn-primary w-full rounded-xl py-4 flex items-center justify-center gap-2 mt-6">
+          <button className="neura-lux-btn-primary w-full rounded-xl py-4 flex items-center justify-center gap-2 mt-6 lux-shimmer-wrapper lux-hover-scale">
             <span>{isSignUp ? 'Create Account' : 'Enter City'}</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        <button className="text-white/60 text-sm font-medium hover:text-white transition-colors flex items-center gap-2">
+        <button className="text-white/60 text-sm font-medium hover:text-white transition-colors flex items-center gap-2 animate-lux-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <User className="w-4 h-4" />
           Continue as Guest
         </button>

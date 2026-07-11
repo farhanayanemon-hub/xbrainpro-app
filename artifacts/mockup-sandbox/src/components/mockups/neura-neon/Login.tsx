@@ -8,19 +8,21 @@ export function Login() {
   return (
     <div className="w-[390px] h-[844px] relative overflow-hidden bg-slate-900 font-sans text-white select-none">
       {/* Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: 'url(/__mockup/images/neura-neon-bg-login.png)' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent"></div>
-        <div className="absolute inset-0 bg-fuchsia-900/20 mix-blend-overlay"></div>
+      <div className="absolute inset-0 overflow-hidden">
+        <div 
+          className="absolute inset-[-10%] bg-cover bg-center z-0 animate-bg-drift"
+          style={{ backgroundImage: 'url(/__mockup/images/neura-neon-bg-login.png)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-fuchsia-900/20 mix-blend-overlay"></div>
+        </div>
       </div>
 
       <div className="relative z-10 flex flex-col h-full px-6 py-12">
         
         {/* Header / Logo Area */}
-        <div className="mt-20 flex-1 flex flex-col items-center">
-          <div className="relative mb-2">
+        <div className="mt-20 flex-1 flex flex-col items-center animate-logo-in">
+          <div className="relative mb-2 animate-text-pulse">
             <h1 className="text-6xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-fuchsia-500 to-purple-600 drop-shadow-2xl">
               NEURA
             </h1>
@@ -69,7 +71,7 @@ export function Login() {
             </div>
           </div>
 
-          <button className="button-pop w-full mt-2 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-purple-500 text-white font-black italic uppercase tracking-wider py-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.5)] flex items-center justify-center gap-2 text-lg border-b-4 border-purple-700/50">
+          <button className="button-pop overflow-hidden-shimmer animate-shimmer animate-main-btn-glow w-full mt-2 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-purple-500 text-white font-black italic uppercase tracking-wider py-4 rounded-xl flex items-center justify-center gap-2 text-lg border-b-4 border-purple-700/50">
             <Gamepad2 className="w-6 h-6" />
             Enter City
           </button>
