@@ -60,3 +60,51 @@ id = "JPnJiTfkAlEDER_-G1V3L"
 uri = "file://artifacts/mockup-sandbox/public/images/neura-soft-avatar.png"
 type = "image"
 title = "Cute 3D chibi game avatar"
+
+[[generated]]
+id = "ULmeeyJY4eCZcIWVMgfn2"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-login-bg.png"
+type = "image"
+title = "Neon city skyline background"
+
+[[generated]]
+id = "1qwsL9VFH8Ds-DkKNXiCv"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-lobby-bg.png"
+type = "image"
+title = "panoramic neon city background"
+
+[[generated]]
+id = "NjbOZ4b8xED_s4kvGKzOj"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-resdl-bg.png"
+type = "image"
+title = "Neon game wide background"
+
+[[generated]]
+id = "e6HTdqHc_69lNtekakywd"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-loading-bg.png"
+type = "image"
+title = "Neon city wide background"
+
+[[generated]]
+id = "RdvLTDVntjad7LWm7eYJ4"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-map-city-bg.png"
+type = "image"
+title = "isometric neon city map"
+
+[[generated]]
+id = "nOeUZ4-ARR_TIhgUP9Moz"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-ingame-bg.png"
+type = "image"
+title = "neon cyberpunk city street gameplay"
+
+[[generated]]
+id = "dwOqBbHV7RQ5kJjXCJm0Y"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-ingame-minimap.png"
+type = "image"
+title = "minimap view"
+
+[[generated]]
+id = "R6ZpoAAjXH41YWFb1nibf"
+uri = "file://artifacts/mockup-sandbox/public/images/ng-mapdl-bg.png"
+type = "image"
+title = "Neon city map loading background"
