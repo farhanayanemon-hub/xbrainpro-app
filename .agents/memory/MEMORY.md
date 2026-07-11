@@ -14,3 +14,4 @@
 - [R2 asset delivery](r2-asset-delivery.md) — stream game assets through api-server (creds can't set bucket CORS); never presigned/direct R2 URLs.
 - [Friends presence & join](friends-presence-join.md) — online != joinable (hidden friends have null position); gate Join on position; requests via displayName + onConflictDoNothing.
 - [City HUD overlay layering](city-hud-overlays.md) — modal backdrops only block controls mounted before them; mount modal overlays last in city.tsx or use RN Modal.
+- [Validation workflow conversion](validation-workflow-conversion.md) — change the "test" workflow only via setValidationCommand; configureWorkflow drops isValidation.
