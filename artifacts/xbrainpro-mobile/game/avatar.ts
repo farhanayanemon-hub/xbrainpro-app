@@ -9,6 +9,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type AvatarGender = "male" | "female";
 
+export type Currency = "coins" | "gems";
+
 export interface AvatarDef {
   id: string;
   name: string;
@@ -16,6 +18,13 @@ export interface AvatarDef {
   gender: AvatarGender;
   /** Accent color used on the picker card. */
   color: string;
+  /**
+   * Store price to unlock this look. The server is the source of truth for
+   * what a purchase actually costs (see api-server storeCatalog.ts) — this is
+   * only used for display and must be kept in sync with it.
+   */
+  price: number;
+  priceCurrency: Currency;
 }
 
 export const AVATARS: AvatarDef[] = [
@@ -25,6 +34,8 @@ export const AVATARS: AvatarDef[] = [
     tagline: "Street-smart & bold",
     gender: "male",
     color: "#5b8cff",
+    price: 250,
+    priceCurrency: "coins",
   },
   {
     id: "maya",
@@ -32,6 +43,8 @@ export const AVATARS: AvatarDef[] = [
     tagline: "Bright & fearless",
     gender: "female",
     color: "#ff6fae",
+    price: 250,
+    priceCurrency: "coins",
   },
 ];
 

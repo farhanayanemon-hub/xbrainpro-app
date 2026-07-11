@@ -32,6 +32,10 @@ tags:
     description: Neura City NPC chat
   - name: world
     description: Neura City world map
+  - name: wallet
+    description: Player coin and gem balances
+  - name: store
+    description: Neura City store purchases
 paths:
   /healthz:
     get:
@@ -730,6 +734,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      summary: Get the authenticated player's coin and gem balance
+      description: Creates the wallet and grants the one-time starting balance on first access.
+      responses:
+        "200":
+          description: The player's balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /store/avatars/{avatarId}/purchase:
+    post:
+      operationId: purchaseAvatar
+      tags: [store]
+      summary: Buy an avatar look with the player's currency
+      description: Deducts the server-priced cost of the look. Idempotent per avatar — a repeat purchase does not charge again. Returns the updated balance.
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Purchase succeeded (or was already owned)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseAvatarResult"
+        "400":
+          description: Not enough currency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Unknown avatar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /world/map:
     get:
       operationId: getWorldMap
@@ -853,6 +915,30 @@ components:
         photoUrl:
           type: ["string", "null"]
           description: Relative URL serving the photo bytes, null when no photo
+
+    Wallet:
+      type: object
+      required: [coins, gems]
+      properties:
+        coins:
+          type: integer
+          description: Soft currency balance
+        gems:
+          type: integer
+          description: Premium currency balance
+
+    PurchaseAvatarResult:
+      type: object
+      required: [coins, gems, avatarId, owned]
+      properties:
+        coins:
+          type: integer
+        gems:
+          type: integer
+        avatarId:
+          type: string
+        owned:
+          type: boolean
 
     PlayerHome:
       type: object

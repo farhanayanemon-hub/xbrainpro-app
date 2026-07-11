@@ -755,6 +755,32 @@ export const NpcChatResponse = zod.object({
 
 
 /**
+ * Creates the wallet and grants the one-time starting balance on first access.
+ * @summary Get the authenticated player's coin and gem balance
+ */
+export const GetWalletResponse = zod.object({
+  "coins": zod.number().describe('Soft currency balance'),
+  "gems": zod.number().describe('Premium currency balance')
+})
+
+
+/**
+ * Deducts the server-priced cost of the look. Idempotent per avatar — a repeat purchase does not charge again. Returns the updated balance.
+ * @summary Buy an avatar look with the player's currency
+ */
+export const PurchaseAvatarParams = zod.object({
+  "avatarId": zod.coerce.string()
+})
+
+export const PurchaseAvatarResponse = zod.object({
+  "coins": zod.number(),
+  "gems": zod.number(),
+  "avatarId": zod.string(),
+  "owned": zod.boolean()
+})
+
+
+/**
  * Anonymous endpoint. Returns every placed world object. Supports ETag/If-None-Match so unchanged maps are not re-downloaded.
  * @summary Get the current Neura City world map
  */

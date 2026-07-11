@@ -43,6 +43,7 @@ import type {
   ProgramDetail,
   ProgramInput,
   Progress,
+  PurchaseAvatarResult,
   RegisterInput,
   Reminder,
   ReminderInput,
@@ -50,6 +51,7 @@ import type {
   Task,
   TaskCompletionResult,
   User,
+  Wallet,
   WorldMap
 } from './api.schemas';
 
@@ -2582,6 +2584,155 @@ export const useNpcChat = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getNpcChatMutationOptions(options));
+    }
+
+export const getGetWalletUrl = () => {
+
+
+
+
+  return `/api/wallet`
+}
+
+/**
+ * Creates the wallet and grants the one-time starting balance on first access.
+ * @summary Get the authenticated player's coin and gem balance
+ */
+export const getWallet = async ( options?: RequestInit): Promise<Wallet> => {
+
+  return customFetch<Wallet>(getGetWalletUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWalletQueryKey = () => {
+    return [
+    `/api/wallet`
+    ] as const;
+    }
+
+
+export const getGetWalletQueryOptions = <TData = Awaited<ReturnType<typeof getWallet>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWalletQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWallet>>> = ({ signal }) => getWallet({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWallet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWalletQueryResult = NonNullable<Awaited<ReturnType<typeof getWallet>>>
+export type GetWalletQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the authenticated player's coin and gem balance
+ */
+
+export function useGetWallet<TData = Awaited<ReturnType<typeof getWallet>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWalletQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPurchaseAvatarUrl = (avatarId: string,) => {
+
+
+
+
+  return `/api/store/avatars/${avatarId}/purchase`
+}
+
+/**
+ * Deducts the server-priced cost of the look. Idempotent per avatar — a repeat purchase does not charge again. Returns the updated balance.
+ * @summary Buy an avatar look with the player's currency
+ */
+export const purchaseAvatar = async (avatarId: string, options?: RequestInit): Promise<PurchaseAvatarResult> => {
+
+  return customFetch<PurchaseAvatarResult>(getPurchaseAvatarUrl(avatarId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPurchaseAvatarMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseAvatar>>, TError,{avatarId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof purchaseAvatar>>, TError,{avatarId: string}, TContext> => {
+
+const mutationKey = ['purchaseAvatar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof purchaseAvatar>>, {avatarId: string}> = (props) => {
+          const {avatarId} = props ?? {};
+
+          return  purchaseAvatar(avatarId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PurchaseAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof purchaseAvatar>>>
+
+    export type PurchaseAvatarMutationError = ErrorType<Error>
+
+    /**
+ * @summary Buy an avatar look with the player's currency
+ */
+export const usePurchaseAvatar = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseAvatar>>, TError,{avatarId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof purchaseAvatar>>,
+        TError,
+        {avatarId: string},
+        TContext
+      > => {
+      return useMutation(getPurchaseAvatarMutationOptions(options));
     }
 
 export const getGetWorldMapUrl = () => {

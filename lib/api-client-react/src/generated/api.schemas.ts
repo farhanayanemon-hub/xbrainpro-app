@@ -77,6 +77,20 @@ export interface PlayerProfile {
   photoUrl?: string | null;
 }
 
+export interface Wallet {
+  /** Soft currency balance */
+  coins: number;
+  /** Premium currency balance */
+  gems: number;
+}
+
+export interface PurchaseAvatarResult {
+  coins: number;
+  gems: number;
+  avatarId: string;
+  owned: boolean;
+}
+
 export interface PlayerHome {
   /** Index of the assigned residential house plot in the world map. */
   plot: number;

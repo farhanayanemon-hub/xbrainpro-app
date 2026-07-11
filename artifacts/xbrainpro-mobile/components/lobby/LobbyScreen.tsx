@@ -15,6 +15,7 @@ import { type PlayerProfile } from "@workspace/api-client-react";
 
 import colors, { fonts } from "@/constants/colors";
 import { getUnreadTotal } from "@/lib/dm";
+import { buyAvatar, fetchWallet, formatAmount, type Wallet } from "@/lib/wallet";
 import { absoluteApiUrl } from "@/lib/session";
 import { playBack, playConfirm, playTap } from "@/lib/sfx";
 import AmbientFX from "@/components/lobby/AmbientFX";
@@ -288,6 +289,12 @@ export default function LobbyScreen({
   // the sheet is open). Falls back to the equipped look when the store closes.
   const [previewId, setPreviewId] = useState(equippedId);
   const [ownedIds, setOwnedIds] = useState<string[]>([]);
+  // Server-authoritative currency balance. Null until the first fetch lands.
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  // Id of the look currently being purchased (disables its Unlock button).
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  // Transient store message (e.g. "Not enough coins") shown under the sheet.
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Entrance choreography: top bar drops in, bottom panel scales up.
   const enter = useRef(new Animated.Value(0)).current;
@@ -334,6 +341,13 @@ export default function LobbyScreen({
     void loadOwnedAvatarIds().then((ids) => {
       if (!cancelled) setOwnedIds(ids);
     });
+    void fetchWallet()
+      .then((w) => {
+        if (!cancelled) setWallet(w);
+      })
+      .catch(() => {
+        /* non-fatal: pills stay at last known / dashes until a retry */
+      });
     return () => {
       cancelled = true;
     };
@@ -372,7 +386,33 @@ export default function LobbyScreen({
   };
 
   const handleUnlock = (id: string) => {
-    void unlockAvatar(id).then((ids) => setOwnedIds(ids));
+    if (buyingId) return; // one purchase at a time
+    setNotice(null);
+    setBuyingId(id);
+    void buyAvatar(id)
+      .then(async (res) => {
+        setWallet({ coins: res.coins, gems: res.gems });
+        const ids = await unlockAvatar(id);
+        setOwnedIds(ids);
+        playConfirm();
+      })
+      .catch((err: unknown) => {
+        // customFetch throws ApiError with .data.error on non-2xx.
+        const msg =
+          typeof err === "object" &&
+          err !== null &&
+          "data" in err &&
+          typeof (err as { data?: { error?: unknown } }).data?.error ===
+            "string"
+            ? (err as { data: { error: string } }).data.error
+            : "Couldn't complete purchase. Try again.";
+        setNotice(msg);
+        // Re-sync balance in case the server state moved.
+        void fetchWallet()
+          .then((w) => setWallet(w))
+          .catch(() => {});
+      })
+      .finally(() => setBuyingId(null));
   };
 
   const handleEquip = (id: string) => {
@@ -479,8 +519,18 @@ export default function LobbyScreen({
             NEURA<Text style={styles.brandAccent}> CITY</Text>
           </Text>
           <View style={styles.hudRow}>
-            <ResourcePill icon="🪙" value="0" tint="#f5b942" onPress={openStore} />
-            <ResourcePill icon="💎" value="0" tint={C.accent} onPress={openStore} />
+            <ResourcePill
+              icon="🪙"
+              value={wallet ? formatAmount(wallet.coins) : "…"}
+              tint="#f5b942"
+              onPress={openStore}
+            />
+            <ResourcePill
+              icon="💎"
+              value={wallet ? formatAmount(wallet.gems) : "…"}
+              tint={C.accent}
+              onPress={openStore}
+            />
             <Pressable
               style={styles.iconBtn}
               onPress={() => {
@@ -598,10 +648,20 @@ export default function LobbyScreen({
           selectedId={previewId}
           equippedId={equippedId}
           ownedIds={ownedIds}
-          onPreview={setPreviewId}
+          coins={wallet?.coins ?? 0}
+          gems={wallet?.gems ?? 0}
+          busyId={buyingId}
+          notice={notice}
+          onPreview={(id) => {
+            setNotice(null);
+            setPreviewId(id);
+          }}
           onUnlock={handleUnlock}
           onEquip={handleEquip}
-          onClose={closeStore}
+          onClose={() => {
+            setNotice(null);
+            closeStore();
+          }}
         />
       )}
 

@@ -21,10 +21,17 @@ type LookState = "equipped" | "owned" | "locked";
  * player hasn't unlocked show a LOCKED badge and an Unlock action; unlocked
  * looks can be equipped, which persists and carries into the city.
  */
+const currencyIcon = (c: AvatarDef["priceCurrency"]): string =>
+  c === "gems" ? "💎" : "🪙";
+
 export default function StorePanel({
   selectedId,
   equippedId,
   ownedIds,
+  coins,
+  gems,
+  busyId,
+  notice,
   onPreview,
   onUnlock,
   onEquip,
@@ -33,6 +40,10 @@ export default function StorePanel({
   selectedId: string;
   equippedId: string;
   ownedIds: string[];
+  coins: number;
+  gems: number;
+  busyId?: string | null;
+  notice?: string | null;
   onPreview: (id: string) => void;
   onUnlock: (id: string) => void;
   onEquip: (id: string) => void;
@@ -44,8 +55,13 @@ export default function StorePanel({
   const stateOf = (a: AvatarDef): LookState =>
     a.id === equippedId ? "equipped" : owned.has(a.id) ? "owned" : "locked";
 
+  const canAfford = (a: AvatarDef): boolean =>
+    (a.priceCurrency === "gems" ? gems : coins) >= a.price;
+
   const selected = AVATARS.find((a) => a.id === selectedId) ?? AVATARS[0];
   const selectedState = stateOf(selected);
+  const buying = busyId === selected.id;
+  const affordable = canAfford(selected);
 
   return (
     <View style={styles.sheet}>
@@ -53,6 +69,14 @@ export default function StorePanel({
         <View>
           <Text style={styles.title}>🛍️ STORE</Text>
           <Text style={styles.subtitle}>Characters — switch your look</Text>
+        </View>
+        <View style={styles.balanceRow}>
+          <View style={styles.balancePill}>
+            <Text style={styles.balanceText}>🪙 {coins}</Text>
+          </View>
+          <View style={styles.balancePill}>
+            <Text style={styles.balanceText}>💎 {gems}</Text>
+          </View>
         </View>
         <Pressable style={styles.close} onPress={onClose}>
           <Text style={styles.closeText}>✕</Text>
@@ -107,13 +131,19 @@ export default function StorePanel({
                     ? "EQUIPPED"
                     : s === "owned"
                       ? "OWNED"
-                      : "LOCKED"}
+                      : `${currencyIcon(a.priceCurrency)} ${a.price}`}
                 </Text>
               </View>
             </Pressable>
           );
         })}
       </ScrollView>
+
+      {notice ? (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>{notice}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.footer}>
         <Text style={styles.footerName}>{selected.name}</Text>
@@ -128,13 +158,25 @@ export default function StorePanel({
           >
             <Text style={styles.actionText}>EQUIP</Text>
           </Pressable>
-        ) : (
+        ) : buying ? (
+          <View style={[styles.action, styles.actionDisabled]}>
+            <Text style={styles.actionText}>BUYING…</Text>
+          </View>
+        ) : affordable ? (
           <Pressable
             style={[styles.action, { backgroundColor: selected.color }]}
             onPress={() => onUnlock(selected.id)}
           >
-            <Text style={styles.actionText}>🔓 UNLOCK</Text>
+            <Text style={styles.actionText}>
+              🔓 {selected.price} {currencyIcon(selected.priceCurrency)}
+            </Text>
           </Pressable>
+        ) : (
+          <View style={[styles.action, styles.actionDisabled]}>
+            <Text style={styles.actionText}>
+              NEED {currencyIcon(selected.priceCurrency)} {selected.price}
+            </Text>
+          </View>
         )}
       </View>
     </View>
@@ -185,6 +227,33 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
   closeText: { fontSize: 15, color: C.mutedForeground },
+
+  balanceRow: { flexDirection: "row", gap: 6, marginLeft: "auto", marginRight: 8 },
+  balancePill: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  balanceText: { fontFamily: fonts.bold, fontSize: 12, color: "#fff" },
+
+  notice: {
+    marginTop: 12,
+    backgroundColor: "rgba(255,90,90,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,90,90,0.4)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  noticeText: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: "#ffb4b4",
+    textAlign: "center",
+  },
 
   row: { gap: 12, paddingRight: 6, paddingBottom: 4 },
   card: {
