@@ -23,3 +23,16 @@ next joiner's snapshot empty.
 
 **How to apply:** any future async work added to the connection handler must
 stay behind the same readyState/registeredId guards.
+
+## Client corollary: send `join` after `welcome`, not on socket open
+
+Because the server attaches its `ws.on("message")` listener only *after* the
+async auth (right after it sends `{t:"welcome"}`), any client that sends `join`
+on the raw socket-open event races the handler and the join is silently dropped
+(you get `welcome` but never `snapshot`).
+
+**Rule:** clients (web, mobile, Unity) must wait for the `welcome` message and
+send `join` in response to it — never on the socket's open/connected event.
+
+**Why:** verified against localhost — join-on-open → only `welcome`;
+join-on-welcome → `welcome` + `snapshot`. Bad token → `{t:"error",reason:"unauthorized"}`.
